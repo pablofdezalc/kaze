@@ -16,6 +16,7 @@
 // Includes
 #include "config.h"
 #include "nldiffusion_functions.h"
+#include "fed.h"
 #include "utils.h"
 
 //*************************************************************************************
@@ -46,6 +47,12 @@ private:
 
     // Vector of keypoint vectors for finding extrema in multiple threads
     std::vector<std::vector<cv::KeyPoint> > kpts_par_;
+
+    // FED parameters
+    int ncycles_;                  // Number of cycles
+    bool reordering_;              // Flag for reordering time steps
+    std::vector<std::vector<float > > tsteps_;  // Vector of FED dynamic time steps
+    std::vector<int> nsteps_;      // Vector of number of steps per cycle
 
     // Computation times variables in ms
     double tkcontrast_;       // Kcontrast factor computation

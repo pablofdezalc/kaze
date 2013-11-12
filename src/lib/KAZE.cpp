@@ -35,7 +35,7 @@ using namespace cv;
  * @param options KAZE configuration options
  * @note The constructor allocates memory for the nonlinear scale space
 */
-KAZE::KAZE(toptions &options) {
+KAZE::KAZE(toptions& options) {
 
     soffset_ = options.soffset;
     sderivatives_ = options.sderivatives;
@@ -51,6 +51,8 @@ KAZE::KAZE(toptions &options) {
     use_upright_ = options.upright;
     use_extended_ = options.extended;
     kcontrast_ = DEFAULT_KCONTRAST;
+    ncycles_ = 0;
+    reordering_ = true;
     tkcontrast_ = 0.0;
     tnlscale_ = 0.0;
     tdetector_ = 0.0;
@@ -105,6 +107,19 @@ void KAZE::Allocate_Memory_Evolution(void) {
         }
     }
 
+    // Allocate memory for the FED number of cycles and time steps
+    #ifdef USE_FED
+    for (size_t i = 1; i < evolution_.size(); i++) {
+        int naux = 0;
+        vector<float> tau;
+        float ttime = 0.0;
+        ttime = evolution_[i].etime-evolution_[i-1].etime;
+        naux = fed_tau_by_process_time(ttime,1,0.25,reordering_,tau);
+        nsteps_.push_back(naux);
+        tsteps_.push_back(tau);
+        ncycles_++;
+    }
+    #else
     // Allocate memory for the auxiliary variables that are used in the AOS scheme
     Ltx_ = Mat::zeros(img_width_,img_height_,CV_32F);
     Lty_ = Mat::zeros(img_height_,img_width_,CV_32F);
@@ -116,6 +131,7 @@ void KAZE::Allocate_Memory_Evolution(void) {
     by_ = Mat::zeros(img_height_-1,img_width_,CV_32F);
     qr_ = Mat::zeros(img_height_-1,img_width_,CV_32F);
     qc_ = Mat::zeros(img_height_,img_width_-1,CV_32F);
+    #endif
 }
 
 //*******************************************************************************
@@ -157,6 +173,7 @@ int KAZE::Create_Nonlinear_Scale_Space(const cv::Mat &img) {
     // Now generate the rest of evolution levels
     for ( size_t i = 1; i < evolution_.size(); i++) {
 
+        evolution_[i-1].Lt.copyTo(evolution_[i].Lt);
         gaussian_2D_convolution(evolution_[i-1].Lt,evolution_[i].Lsmooth,0,0,sderivatives_);
 
         // Compute the Gaussian derivatives Lx and Ly
@@ -174,9 +191,17 @@ int KAZE::Create_Nonlinear_Scale_Space(const cv::Mat &img) {
             weickert_diffusivity(evolution_[i].Lx,evolution_[i].Ly,evolution_[i].Lflow,kcontrast_);
         }
 
+        // Perform FED n inner steps
+        #ifdef USE_FED
+        for (int j = 0; j < nsteps_[i-1]; j++) {
+             nld_step_scalar(evolution_[i].Lt,evolution_[i].Lflow,evolution_[i].Lstep,tsteps_[i-1][j]);
+        }
+        #else
+        cout << "not using FED!" << endl;
         // Perform the evolution step with AOS
         AOS_Step_Scalar(evolution_[i].Lt,evolution_[i-1].Lt,evolution_[i].Lflow,
                         evolution_[i].etime-evolution_[i-1].etime);
+        #endif
 
         if (verbosity_ == true) {
             cout << "Computed image evolution step " << i << " Evolution time: " << evolution_[i].etime <<
