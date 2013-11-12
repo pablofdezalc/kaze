@@ -27,6 +27,7 @@
 
 // Namespaces
 using namespace std;
+using namespace cv;
 
 //*************************************************************************************
 //*************************************************************************************
@@ -39,30 +40,28 @@ using namespace std;
  * @param ksize_y Kernel size in Y-direction (vertical)
  * @param sigma Kernel standard deviation
  */
-void Gaussian_2D_Convolution(const cv::Mat &src, cv::Mat &dst, unsigned int ksize_x,
-							 unsigned int ksize_y, float sigma)
+void gaussian_2D_convolution(const cv::Mat& src, cv::Mat& dst, const size_t& ksize_x,
+                             const size_t& ksize_y, const float& sigma)
 {
-	// Compute an appropriate kernel size according to the specified sigma
-	if( sigma > ksize_x || sigma > ksize_y || ksize_x == 0 || ksize_y == 0 )
-	{
-		ksize_x = ceil(2.0*(1.0 + (sigma-0.8)/(0.3)));
-		ksize_y = ksize_x;
-	}
+    size_t ksize_x_ = 0, ksize_y_ = 0;
 
-	// The kernel size must be and odd number
-	if( (ksize_x % 2) == 0 )
-	{
-		ksize_x += 1;
-	}
-		
-	if( (ksize_y % 2) == 0 )
-	{
-		ksize_y += 1;
-	}
+    // Compute an appropriate kernel size according to the specified sigma
+    if (sigma > ksize_x || sigma > ksize_y || ksize_x == 0 || ksize_y == 0) {
+        ksize_x_ = ceil(2.0*(1.0 + (sigma-0.8)/(0.3)));
+        ksize_y_ = ksize_x_;
+    }
 
-	// Perform the Gaussian Smoothing with border replication
-	cv::GaussianBlur(src,dst,cv::Size(ksize_x,ksize_y),sigma,sigma,cv::BORDER_REPLICATE);
-	
+    // The kernel size must be and odd number
+    if ((ksize_x_ % 2) == 0) {
+        ksize_x_ += 1;
+    }
+
+    if ((ksize_y_ % 2) == 0) {
+        ksize_y_ += 1;
+    }
+
+    // Perform the Gaussian Smoothing with border replication
+    GaussianBlur(src,dst,Size(ksize_x_,ksize_y_),sigma,sigma,cv::BORDER_REPLICATE);
 }
 
 //*************************************************************************************
@@ -76,8 +75,7 @@ void Gaussian_2D_Convolution(const cv::Mat &src, cv::Mat &dst, unsigned int ksiz
  * @param dst Output image
  * @param k Contrast factor parameter
  */
-void PM_G1(const cv::Mat &Lx, const cv::Mat &Ly, cv::Mat &dst, float k )
-{
+void pm_g1(const cv::Mat& Lx, const cv::Mat& Ly, cv::Mat& dst, const float& k) {
     cv::exp(-(Lx.mul(Lx) + Ly.mul(Ly))/(k*k),dst);
 }
 
@@ -92,8 +90,7 @@ void PM_G1(const cv::Mat &Lx, const cv::Mat &Ly, cv::Mat &dst, float k )
  * @param dst Output image
  * @param k Contrast factor parameter
  */
-void PM_G2(const cv::Mat &Lx, const cv::Mat &Ly, cv::Mat &dst, float k )
-{
+void pm_g2(const cv::Mat &Lx, const cv::Mat& Ly, cv::Mat& dst, const float& k) {
     dst = 1./(1. + (Lx.mul(Lx) + Ly.mul(Ly))/(k*k));
 }
 
@@ -110,9 +107,8 @@ void PM_G2(const cv::Mat &Lx, const cv::Mat &Ly, cv::Mat &dst, float k )
  * Applications of nonlinear diffusion in image processing and computer vision,
  * Proceedings of Algorithmy 2000
  */
-void Weickert_Diffusivity(const cv::Mat &Lx, const cv::Mat &Ly, cv::Mat &dst, float k )
-{
-    cv::Mat modg;
+void weickert_diffusivity(const cv::Mat& Lx, const cv::Mat& Ly, cv::Mat& dst, const float& k) {
+    Mat modg;
     cv::pow((Lx.mul(Lx) + Ly.mul(Ly))/(k*k),4,modg);
     cv::exp(-3.315/modg, dst);
     dst = 1.0 - dst;
@@ -133,95 +129,86 @@ void Weickert_Diffusivity(const cv::Mat &Lx, const cv::Mat &Ly, cv::Mat &dst, fl
  * @param ksize_y Kernel size in Y-direction (vertical) for the Gaussian smoothing kernel
  * @return k contrast factor
  */
-float Compute_K_Percentile(const cv::Mat &img, float perc, float gscale, unsigned int nbins, unsigned int ksize_x, unsigned int ksize_y)
-{
-	float kperc = 0.0, modg = 0.0, lx = 0.0, ly = 0.0;
-	unsigned int nbin = 0, nelements = 0, nthreshold = 0, k = 0;
+float compute_k_percentile(const cv::Mat& img, const float& perc, const float& gscale,
+                           const size_t& nbins, const size_t& ksize_x, const size_t& ksize_y) {
+
+    size_t nbin = 0, nelements = 0, nthreshold = 0, k = 0;
+    float kperc = 0.0, modg = 0.0, lx = 0.0, ly = 0.0;
     float npoints = 0.0;
-	float hmax = 0.0;
+    float hmax = 0.0;
 
     // Create the array for the histogram
     float *hist = new float[nbins];
 
-	// Create the matrices
-	cv::Mat gaussian = cv::Mat::zeros(img.rows,img.cols,CV_32F);
-	cv::Mat Lx = cv::Mat::zeros(img.rows,img.cols,CV_32F);
-	cv::Mat Ly = cv::Mat::zeros(img.rows,img.cols,CV_32F);
-	
-	// Set the histogram to zero, just in case
-	for( unsigned int i = 0; i < nbins; i++ )
-	{
-		hist[i] = 0.0;
-	}
+    // Create the matrices
+    Mat gaussian = Mat::zeros(img.rows,img.cols,CV_32F);
+    Mat Lx = Mat::zeros(img.rows,img.cols,CV_32F);
+    Mat Ly = Mat::zeros(img.rows,img.cols,CV_32F);
 
-	// Perform the Gaussian convolution
-	Gaussian_2D_Convolution(img,gaussian,ksize_x,ksize_y,gscale);
-			
-	// Compute the Gaussian derivatives Lx and Ly
-    cv::Scharr(gaussian,Lx,CV_32F,1,0,1,0,cv::BORDER_DEFAULT);
-    cv::Scharr(gaussian,Ly,CV_32F,0,1,1,0,cv::BORDER_DEFAULT);
-	
-	// Skip the borders for computing the histogram
-	for( int i = 1; i < gaussian.rows-1; i++ )
-	{
-		for( int j = 1; j < gaussian.cols-1; j++ )
-		{
+    // Set the histogram to zero, just in case
+    for (size_t i = 0; i < nbins; i++) {
+        hist[i] = 0.0;
+    }
+
+    // Perform the Gaussian convolution
+    gaussian_2D_convolution(img,gaussian,ksize_x,ksize_y,gscale);
+
+    // Compute the Gaussian derivatives Lx and Ly
+    Scharr(gaussian,Lx,CV_32F,1,0,1,0,cv::BORDER_DEFAULT);
+    Scharr(gaussian,Ly,CV_32F,0,1,1,0,cv::BORDER_DEFAULT);
+
+    // Skip the borders for computing the histogram
+    for (int i = 1; i < gaussian.rows-1; i++) {
+        for (int j = 1; j < gaussian.cols-1; j++) {
             lx = *(Lx.ptr<float>(i)+j);
             ly = *(Ly.ptr<float>(i)+j);
-			modg = sqrt(lx*lx + ly*ly);
-	
-			// Get the maximum
-			if( modg > hmax )
-			{
-				hmax = modg;
-			}
-		}
-	}
+            modg = sqrt(lx*lx + ly*ly);
 
-	// Skip the borders for computing the histogram
-	for( int i = 1; i < gaussian.rows-1; i++ )
-	{
-		for( int j = 1; j < gaussian.cols-1; j++ )
-		{
+            // Get the maximum
+            if (modg > hmax) {
+                hmax = modg;
+            }
+        }
+    }
+
+    // Skip the borders for computing the histogram
+    for (int i = 1; i < gaussian.rows-1; i++) {
+        for (int j = 1; j < gaussian.cols-1; j++) {
             lx = *(Lx.ptr<float>(i)+j);
             ly = *(Ly.ptr<float>(i)+j);
-			modg = sqrt(lx*lx + ly*ly);
+            modg = sqrt(lx*lx + ly*ly);
 
-			// Find the correspondent bin
-			if( modg != 0.0 )
-			{
-				nbin = floor(nbins*(modg/hmax));
+            // Find the correspondent bin
+            if (modg != 0.0) {
+                nbin = floor(nbins*(modg/hmax));
 
-                if( nbin == nbins )
-                {
+                if (nbin == nbins) {
                     nbin--;
                 }
 
-				hist[nbin]++;
-				npoints++;
-			}
-		}
-	}
-	
-	// Now find the perc of the histogram percentile
-	nthreshold = (unsigned int)(npoints*perc);
-	
-	for( k = 0; nelements < nthreshold && k < nbins; k++)
-	{
-		nelements = nelements + hist[k];
-	}
-	
-	if( nelements < nthreshold )
-	{
-		kperc = 0.03;
-	}
-	else
-	{
-		kperc = hmax*((float)(k)/(float)nbins);	
-	}
-	
+                hist[nbin]++;
+                npoints++;
+            }
+        }
+    }
+
+    // Now find the perc of the histogram percentile
+    nthreshold = (size_t)(npoints*perc);
+
+
+    for (k = 0; nelements < nthreshold && k < nbins; k++) {
+        nelements = nelements + hist[k];
+    }
+
+    if (nelements < nthreshold)  {
+        kperc = 0.03;
+    }
+    else {
+        kperc = hmax*((float)(k)/(float)nbins);
+    }
+
     delete hist;
-	return kperc;
+    return kperc;
 }
 
 //*************************************************************************************
@@ -235,11 +222,11 @@ float Compute_K_Percentile(const cv::Mat &img, float perc, float gscale, unsigne
  * @param yorder Derivative order in Y-direction (vertical)
  * @param scale Scale factor or derivative size
  */
-void Compute_Scharr_Derivatives(const cv::Mat &src, cv::Mat &dst, int xorder, int yorder, int scale )
-{
-    cv::Mat kx, ky;
-    Compute_Deriv_Kernels(kx, ky, xorder,yorder,scale);
-    cv::sepFilter2D(src, dst, CV_32F, kx, ky);
+void compute_scharr_derivatives(const cv::Mat& src, cv::Mat& dst,
+                                const size_t& xorder, const size_t& yorder, const size_t& scale) {
+    Mat kx, ky;
+    compute_derivative_kernels(kx, ky, xorder,yorder,scale);
+    sepFilter2D(src, dst, CV_32F, kx, ky);
 }
 
 //*************************************************************************************
@@ -253,49 +240,43 @@ void Compute_Scharr_Derivatives(const cv::Mat &src, cv::Mat &dst, int xorder, in
  * @param dy Derivative order in Y-direction (vertical)
  * @param scale_ Scale factor or derivative size
  */
-void Compute_Deriv_Kernels(cv::OutputArray _kx, cv::OutputArray _ky, int dx, int dy, int scale_)
+void compute_derivative_kernels(cv::OutputArray _kx, cv::OutputArray _ky,
+                                const size_t& dx, const size_t& dy, const size_t& scale_)
 {
-  const int ksize = 3 + 2*(scale_-1);
+    size_t ksize = 3 + 2*(scale_-1);
 
-  if( scale_ == 1 )
-  {
-      // The standard Scharr kernel
-      cv::getDerivKernels(_kx, _ky, dx, dy, 0, true, CV_32F);
-      return;
-  }
+    if (scale_ == 1) {
+        // The standard Scharr kernel
+        getDerivKernels(_kx, _ky, dx, dy, 0, true, CV_32F);
+        return;
+    }
 
-  _kx.create(ksize, 1, CV_32F, -1, true);
-  _ky.create(ksize, 1, CV_32F, -1, true);
-  cv::Mat kx = _kx.getMat();
-  cv::Mat ky = _ky.getMat();
+    _kx.create(ksize, 1, CV_32F, -1, true);
+    _ky.create(ksize, 1, CV_32F, -1, true);
+    Mat kx = _kx.getMat();
+    Mat ky = _ky.getMat();
 
-  CV_Assert( dx >= 0 && dy >= 0 && dx+dy == 1 );
+    float w = 10.0/3.0;
+    float norm = 1.0/(2.0*scale_*(w+2.0));
 
-  float w = 10.0/3.0;
-  float norm = 1.0/(2.0*scale_*(w+2.0));
+    for (int k = 0; k < 2; k++) {
+        Mat* kernel = k == 0 ? &kx : &ky;
+        int order = k == 0 ? dx : dy;
+        float kerI[ksize];
 
-  for( int k = 0; k < 2; k++ )
-  {
-       cv::Mat* kernel = k == 0 ? &kx : &ky;
-       int order = k == 0 ? dx : dy;
-       float kerI[ksize];
+        for (size_t t=0; t<ksize; t++) {
+            kerI[t] = 0;
+        }
 
-       for(int t=0; t<ksize; t++)
-       {
-           kerI[t] = 0;
-       }
-
-       if( order == 0 )
-       {
+        if (order == 0) {
             kerI[0] = norm, kerI[ksize/2] = w*norm, kerI[ksize-1] = norm;
-       }
-       else if( order == 1 )
-       {
+        }
+        else if (order == 1) {
             kerI[0] = -1, kerI[ksize/2] = 0, kerI[ksize-1] = 1;
-       }
+        }
 
-       cv::Mat temp(kernel->rows, kernel->cols, CV_32F, &kerI[0]);
-       temp.copyTo(*kernel);
+        Mat temp(kernel->rows, kernel->cols, CV_32F, &kerI[0]);
+        temp.copyTo(*kernel);
     }
 }
 
@@ -312,12 +293,13 @@ void Compute_Deriv_Kernels(cv::OutputArray _kx, cv::OutputArray _ky, int dx, int
  * The function c is a scalar value that depends on the gradient norm
  * dL_by_ds = d(c dL_by_dx)_by_dx + d(c dL_by_dy)_by_dy
  */
-void NLD_Step_Scalar(cv::Mat &Ld, const cv::Mat &c, cv::Mat &Lstep, float stepsize)
-{
-    for( int i = 1; i < Lstep.rows-1; i++ )
-    {
-        for( int j = 1; j < Lstep.cols-1; j++ )
-        {
+void nld_step_scalar(cv::Mat& Ld, const cv::Mat& c, cv::Mat& Lstep, const float& stepsize) {
+
+    #ifdef _OPENMP
+    #pragma omp parallel for schedule(dynamic)
+    #endif
+    for (int i = 1; i < Lstep.rows-1; i++) {
+        for (int j = 1; j < Lstep.cols-1; j++) {
             float xpos = ((*(c.ptr<float>(i)+j))+(*(c.ptr<float>(i)+j+1)))*((*(Ld.ptr<float>(i)+j+1))-(*(Ld.ptr<float>(i)+j)));
             float xneg = ((*(c.ptr<float>(i)+j-1))+(*(c.ptr<float>(i)+j)))*((*(Ld.ptr<float>(i)+j))-(*(Ld.ptr<float>(i)+j-1)));
             float ypos = ((*(c.ptr<float>(i)+j))+(*(c.ptr<float>(i+1)+j)))*((*(Ld.ptr<float>(i+1)+j))-(*(Ld.ptr<float>(i)+j)));
@@ -326,19 +308,15 @@ void NLD_Step_Scalar(cv::Mat &Ld, const cv::Mat &c, cv::Mat &Lstep, float stepsi
         }
     }
 
-    for( int j = 1; j < Lstep.cols-1; j++ )
-    {
+    for (int j = 1; j < Lstep.cols-1; j++) {
         float xpos = ((*(c.ptr<float>(0)+j))+(*(c.ptr<float>(0)+j+1)))*((*(Ld.ptr<float>(0)+j+1))-(*(Ld.ptr<float>(0)+j)));
         float xneg = ((*(c.ptr<float>(0)+j-1))+(*(c.ptr<float>(0)+j)))*((*(Ld.ptr<float>(0)+j))-(*(Ld.ptr<float>(0)+j-1)));
-
         float ypos = ((*(c.ptr<float>(0)+j))+(*(c.ptr<float>(1)+j)))*((*(Ld.ptr<float>(1)+j))-(*(Ld.ptr<float>(0)+j)));
         float yneg = ((*(c.ptr<float>(0)+j))+(*(c.ptr<float>(0)+j)))*((*(Ld.ptr<float>(0)+j))-(*(Ld.ptr<float>(0)+j)));
-
         *(Lstep.ptr<float>(0)+j) = 0.5*stepsize*(xpos-xneg + ypos-yneg);
     }
 
-    for( int j = 1; j < Lstep.cols-1; j++ )
-    {
+    for (int j = 1; j < Lstep.cols-1; j++) {
         float xpos = ((*(c.ptr<float>(Lstep.rows-1)+j))+(*(c.ptr<float>(Lstep.rows-1)+j+1)))*((*(Ld.ptr<float>(Lstep.rows-1)+j+1))-(*(Ld.ptr<float>(Lstep.rows-1)+j)));
         float xneg = ((*(c.ptr<float>(Lstep.rows-1)+j-1))+(*(c.ptr<float>(Lstep.rows-1)+j)))*((*(Ld.ptr<float>(Lstep.rows-1)+j))-(*(Ld.ptr<float>(Lstep.rows-1)+j-1)));
         float ypos = ((*(c.ptr<float>(Lstep.rows-1)+j))+(*(c.ptr<float>(Lstep.rows-1)+j)))*((*(Ld.ptr<float>(Lstep.rows-1)+j))-(*(Ld.ptr<float>(Lstep.rows-1)+j)));
@@ -346,8 +324,7 @@ void NLD_Step_Scalar(cv::Mat &Ld, const cv::Mat &c, cv::Mat &Lstep, float stepsi
         *(Lstep.ptr<float>(Lstep.rows-1)+j) = 0.5*stepsize*(xpos-xneg + ypos-yneg);
     }
 
-    for( int i = 1; i < Lstep.rows-1; i++ )
-    {
+    for (int i = 1; i < Lstep.rows-1; i++) {
         float xpos = ((*(c.ptr<float>(i)))+(*(c.ptr<float>(i)+1)))*((*(Ld.ptr<float>(i)+1))-(*(Ld.ptr<float>(i))));
         float xneg = ((*(c.ptr<float>(i)))+(*(c.ptr<float>(i))))*((*(Ld.ptr<float>(i)))-(*(Ld.ptr<float>(i))));
         float ypos = ((*(c.ptr<float>(i)))+(*(c.ptr<float>(i+1))))*((*(Ld.ptr<float>(i+1)))-(*(Ld.ptr<float>(i))));
@@ -355,13 +332,11 @@ void NLD_Step_Scalar(cv::Mat &Ld, const cv::Mat &c, cv::Mat &Lstep, float stepsi
         *(Lstep.ptr<float>(i)) = 0.5*stepsize*(xpos-xneg + ypos-yneg);
     }
 
-    for( int i = 1; i < Lstep.rows-1; i++ )
-    {
+    for (int i = 1; i < Lstep.rows-1; i++) {
         float xpos = ((*(c.ptr<float>(i)+Lstep.cols-1))+(*(c.ptr<float>(i)+Lstep.cols-1)))*((*(Ld.ptr<float>(i)+Lstep.cols-1))-(*(Ld.ptr<float>(i)+Lstep.cols-1)));
         float xneg = ((*(c.ptr<float>(i)+Lstep.cols-2))+(*(c.ptr<float>(i)+Lstep.cols-1)))*((*(Ld.ptr<float>(i)+Lstep.cols-1))-(*(Ld.ptr<float>(i)+Lstep.cols-2)));
         float ypos = ((*(c.ptr<float>(i)+Lstep.cols-1))+(*(c.ptr<float>(i+1)+Lstep.cols-1)))*((*(Ld.ptr<float>(i+1)+Lstep.cols-1))-(*(Ld.ptr<float>(i)+Lstep.cols-1)));
         float yneg = ((*(c.ptr<float>(i-1)+Lstep.cols-1))+(*(c.ptr<float>(i)+Lstep.cols-1)))*((*(Ld.ptr<float>(i)+Lstep.cols-1))-(*(Ld.ptr<float>(i-1)+Lstep.cols-1)));
-
         *(Lstep.ptr<float>(i)+Lstep.cols-1) = 0.5*stepsize*(xpos-xneg + ypos-yneg);
     }
 
@@ -381,87 +356,31 @@ void NLD_Step_Scalar(cv::Mat &Ld, const cv::Mat &c, cv::Mat &Lstep, float stepsi
  * @param same_img Flag to indicate if the image value at (x,y) is in the input image
  * @return 1->is maximum, 0->otherwise
  */
-bool Check_Maximum_Neighbourhood(cv::Mat &img, int dsize, float value, int row, int col, bool same_img )
-{
-	bool response = true;
+bool check_maximum_neighbourhood(const cv::Mat& img, const int& dsize, const float& value,
+                                 const int& row, const int& col, const bool& same_img) {
 
-	for( int i = row-dsize; i <= row+dsize; i++ )
-	{
-		for( int j = col-dsize; j <= col+dsize; j++ )
-		{
-			if( i >= 0 && i < img.rows && j >= 0 && j < img.cols )
-            {
-				if( same_img == true )
-				{
-					if( i != row || j != col )
-					{
-                        if( (*(img.ptr<float>(i)+j)) > value )
-						{
-							response = false;
-							return response;
-						}
-					}		
-				}
-				else
-				{
-                    if( (*(img.ptr<float>(i)+j)) > value )
-					{
-						response = false;
-						return response;
-					}
-				}
-			}
-		}
-	}
-	
-	return response;
-}
+    bool response = true;
 
-//*************************************************************************************
-//*************************************************************************************
+    for (int i = row-dsize; i <= row+dsize; i++) {
+        for (int j = col-dsize; j <= col+dsize; j++) {
+            if (i >= 0 && i < img.rows && j >= 0 && j < img.cols) {
+                if (same_img == true) {
+                    if (i != row || j != col) {
+                        if ((*(img.ptr<float>(i)+j)) > value) {
+                            response = false;
+                            return response;
+                        }
+                    }
+                }
+                else {
+                    if ((*(img.ptr<float>(i)+j)) > value) {
+                        response = false;
+                        return response;
+                    }
+                }
+            }
+        }
+    }
 
-/**
- * @brief This function checks if a given pixel is a minimum in a local neighbourhood
- * @param img Input image where we will perform the minimum search
- * @param dsize Half size of the neighbourhood
- * @param value Response value at (x,y) position
- * @param row Image row coordinate
- * @param col Image column coordinate
- * @param same_img Flag to indicate if the image value at (x,y) is in the input image
- * @return 1->is a minimum, 0->otherwise
- */
-bool Check_Minimum_Neighbourhood(cv::Mat &img, int dsize, float value, int row, int col, bool same_img )
-{
-	bool response = true;
-
-	for( int i = row-dsize; i <= row+dsize; i++ )
-	{
-		for( int j = col-dsize; j <= col+dsize; j++ )
-		{
-			if( i >= 0 && i < img.rows && j >= 0 && j < img.cols )
-            {
-				if( same_img == true )
-				{
-					if( i != row || j != col )
-					{
-                        if( (*(img.ptr<float>(i)+j)) <= value )
-						{
-							response = false;
-							return response;
-						}
-					}		
-				}
-				else
-				{
-                    if( (*(img.ptr<float>(i)+j)) <= value )
-					{
-						response = false;
-						return response;
-					}
-				}
-			}
-		}
-	}
-	
-	return response;
+    return response;
 }

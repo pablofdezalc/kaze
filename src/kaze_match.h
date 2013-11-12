@@ -22,9 +22,9 @@
 //*************************************************************************************
 
 // Declaration of functions
-void Show_Input_Options_Help(void);
-int Parse_Input_Options(toptions &options, char *img_name, char *img_name2, char *hfile, char *kfile, int argc, char *argv[] );
-void Save_Matching_Image(cv::Mat img);
+void show_input_options_help(void);
+int parse_input_options(toptions &options, char *img_name, char *img_name2, char *hfile, char *kfile, int argc, char *argv[] );
+void save_matching_image(const cv::Mat& img);
 
 //*************************************************************************************
 //*************************************************************************************

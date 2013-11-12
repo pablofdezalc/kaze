@@ -28,9 +28,9 @@
 
 // OpenMP Includes
 #ifdef _OPENMP
-   #include <omp.h>
+#include <omp.h>
 #else
-   #define omp_get_thread_num() 0
+#define omp_get_thread_num() 0
 #endif
 
 //*************************************************************************************
@@ -42,38 +42,38 @@
 // Options structure
 typedef struct
 {
-	float soffset;
-	int omax;
-	int nsublevels;
-	int img_width;
-	int img_height;
+    float soffset;
+    int omax;
+    int nsublevels;
+    int img_width;
+    int img_height;
     int diffusivity;
-	float sderivatives;
-	float dthreshold;
-	float dthreshold2;
-	bool upright;
+    float sderivatives;
+    float dthreshold;
+    float dthreshold2;
+    bool upright;
     bool extended;
-	int descriptor;
-	bool save_scale_space;
-	bool save_keypoints;
-	bool verbosity;
+    int descriptor;
+    bool save_scale_space;
+    bool save_keypoints;
+    bool verbosity;
     bool show_results;
 }toptions;
 
 typedef struct
 {
-	cv::Mat Lx, Ly;	// First order spatial derivatives
-	cv::Mat Lxx, Lxy, Lyy;	// Second order spatial derivatives
-	cv::Mat Lflow;	// Diffusivity image
-	cv::Mat Lt;	// Evolution image
-	cv::Mat Lsmooth; // Smoothed image
-	cv::Mat Lstep; // Evolution step update
-	cv::Mat Ldet; // Detector response
-	float etime;	// Evolution time
-	float esigma;	// Evolution sigma. For linear diffusion t = sigma^2 / 2
-	float octave;	// Image octave
-	float sublevel;	// Image sublevel in each octave
-	int sigma_size;	// Integer esigma. For computing the feature detector responses
+    cv::Mat Lx, Ly;	// First order spatial derivatives
+    cv::Mat Lxx, Lxy, Lyy;	// Second order spatial derivatives
+    cv::Mat Lflow;	// Diffusivity image
+    cv::Mat Lt;	// Evolution image
+    cv::Mat Lsmooth; // Smoothed image
+    cv::Mat Lstep; // Evolution step update
+    cv::Mat Ldet; // Detector response
+    float etime;	// Evolution time
+    float esigma;	// Evolution sigma. For linear diffusion t = sigma^2 / 2
+    float octave;	// Image octave
+    float sublevel;	// Image sublevel in each octave
+    int sigma_size;	// Integer esigma. For computing the feature detector responses
 }tevolution;
 
 // Some default options

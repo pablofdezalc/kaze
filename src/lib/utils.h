@@ -33,29 +33,22 @@
 //*************************************************************************************
 
 // Declaration of Functions
-void Compute_min_32F(const cv::Mat &src, float &value);
-void Compute_max_32F(const cv::Mat &src, float &value);
-
-void Convert_Scale(cv::Mat &src);
-void Copy_and_Convert_Scale(const cv::Mat &src, cv::Mat &dst);
-
-void DrawKeyPoints(cv::Mat &img, const std::vector<cv::KeyPoint> &kpts);
-int SaveKeyPoints(char *sFileName, const std::vector<cv::KeyPoint> &kpts, const cv::Mat &desc, bool bVerbose);
-
-int fRound(float flt);
-
-void findmatches_nndr(std::vector<cv::KeyPoint> &kpts1, cv::Mat &desc1,std::vector<cv::KeyPoint> &kpts2, cv::Mat &desc2,
-                      std::vector<cv::Point2f> &matches, float nndr);
-
-float Compute_Descriptor_Distance(float *d1, float *d2, int dsize);
-
-void Compute_Inliers_RANSAC(const std::vector<cv::Point2f> &matches, std::vector<cv::Point2f> &inliers, float error, bool use_fund);
-void Compute_Inliers_Homography(const std::vector<cv::Point2f> &matches, std::vector<cv::Point2f> &inliers, float error, const cv::Mat &H);
-
-void Composite_Image_with_Line(cv::Mat &img1, cv::Mat &img2, cv::Mat &img_com, const std::vector<cv::Point2f> &inliers);
-void Composite_Image_with_Line(cv::Mat &img1, cv::Mat &img2, cv::Mat &img_com, const std::vector<cv::Point2f> &inliers, int index);
-
-void Read_Homography(const char *hFile, cv::Mat &H1toN);
+void compute_min_32F(const cv::Mat& src, float& value);
+void compute_max_32F(const cv::Mat& src, float& value);
+void convert_scale(cv::Mat& src);
+void copy_and_convert_scale(const cv::Mat &src, cv::Mat& dst);
+void draw_keypoints(cv::Mat& img, const std::vector<cv::KeyPoint>& kpts);
+int save_keypoints(char *sFileName, const std::vector<cv::KeyPoint> &kpts, const cv::Mat &desc, const bool& bVerbose);
+void matches2points_nndr(const std::vector<cv::KeyPoint>& train, const std::vector<cv::KeyPoint>& query,
+                         const std::vector<std::vector<cv::DMatch> >& matches,
+                         std::vector<cv::Point2f>& pmatches, const float& nndr);
+void compute_inliers_ransac(const std::vector<cv::Point2f> &matches, std::vector<cv::Point2f> &inliers,
+                            const float& error, const bool& use_fund);
+void compute_inliers_homography(const std::vector<cv::Point2f> &matches,
+                                std::vector<cv::Point2f> &inliers, const cv::Mat &H, const float& min_error);
+void draw_inliers(const cv::Mat &img1, const cv::Mat &img2, cv::Mat &img_com, const std::vector<cv::Point2f> &ptpairs);
+void draw_inliers(const cv::Mat &img1, const cv::Mat &img2, cv::Mat &img_com, const std::vector<cv::Point2f> &ptpairs, const int& color);
+void read_homography(const char *hFile, cv::Mat& H1toN);
 
 //*************************************************************************************
 //*************************************************************************************

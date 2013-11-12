@@ -56,8 +56,9 @@ int main(int argc, char *argv[]) {
     int nkpts_sift1 = 0, nkpts_sift2 = 0;
     int nmatches_sift = 0, ninliers_sift = 0, noutliers_sift = 0;
     float ratio_sift = 0.0;
+    vector<vector<DMatch> > dmatches_sift;
     vector<Point2f> matches_sift, inliers_sift;
-    Mat img1_rgb_sift, img2_rgb_sift, mask, img_com_sift;
+    Mat img1_rgb_sift, img2_rgb_sift, img_com_sift;
 
     // SURF Variables
     Mat desc_surf1, desc_surf2;
@@ -65,6 +66,7 @@ int main(int argc, char *argv[]) {
     int nkpts_surf1 = 0, nkpts_surf2 = 0;
     int nmatches_surf = 0, ninliers_surf = 0, noutliers_surf = 0;
     float ratio_surf = 0.0;
+    vector<vector<DMatch> > dmatches_surf;
     vector<Point2f> matches_surf, inliers_surf;
     Mat img1_rgb_surf, img2_rgb_surf, img_com_surf;
     SURF dsurf(10,4,2,false,false);
@@ -75,8 +77,12 @@ int main(int argc, char *argv[]) {
     int nkpts_kaze1 = 0, nkpts_kaze2 = 0;
     int nmatches_kaze = 0, ninliers_kaze = 0, noutliers_kaze = 0;
     float ratio_kaze = 0.0;
+    vector<vector<DMatch> > dmatches_kaze;
     vector<Point2f> matches_kaze, inliers_kaze;
     Mat img1_rgb_kaze, img2_rgb_kaze, img_com_kaze;
+
+    // L2 matcher
+    Ptr<DescriptorMatcher> matcher_l2 = DescriptorMatcher::create("BruteForce");
 
     // Parse the input command line options
     if (Parse_Input_Options(options,img_name1,img_name2,hfile,rfile,argc,argv)) {
@@ -107,7 +113,6 @@ int main(int argc, char *argv[]) {
     img1_rgb_sift = cv::Mat(Size(img1.cols,img1.rows),CV_8UC3);
     img2_rgb_sift = cv::Mat(Size(img2.cols,img2.rows),CV_8UC3);
     img_com_sift = cv::Mat(Size(img1.cols*2,img1.rows),CV_8UC3);
-    mask = cv::Mat::zeros(Size(img2.cols,img2.rows),CV_8UC1);
     img1_rgb_surf = cv::Mat(Size(img1.cols,img1.rows),CV_8UC3);
     img2_rgb_surf = cv::Mat(Size(img2.cols,img2.rows),CV_8UC3);
     img_com_surf = cv::Mat(Size(img1.cols*2,img1.rows),CV_8UC3);
@@ -116,8 +121,8 @@ int main(int argc, char *argv[]) {
     img_com_kaze = cv::Mat(Size(img1.cols*2,img1.rows),CV_8UC3);
 
     // Read the homography file
-    cv::Mat H;
-    Read_Homography(hfile,H);
+    Mat H;
+    read_homography(hfile,H);
 
     // OpenCV Windows for visualization
     namedWindow("SIFT",CV_WINDOW_NORMAL);
@@ -141,10 +146,11 @@ int main(int argc, char *argv[]) {
     nkpts_sift2 = kpts_sift2.size();
 
     // Matching Descriptors!!
-    findmatches_nndr(kpts_sift1,desc_sift1,kpts_sift2,desc_sift2,matches_sift,DRATIO);
+    matcher_l2->knnMatch(desc_sift1,desc_sift2,dmatches_sift,2);
+    matches2points_nndr(kpts_sift1,kpts_sift2,dmatches_sift,matches_sift,DRATIO);
 
     // Compute Inliers!!
-    Compute_Inliers_Homography(matches_sift,inliers_sift,MAX_H_ERROR,H);
+    compute_inliers_homography(matches_sift,inliers_sift,H,MAX_H_ERROR);
 
     // Compute the inliers statistics
     nmatches_sift = matches_sift.size()/2;
@@ -160,11 +166,11 @@ int main(int argc, char *argv[]) {
     cvtColor(img2,img2_rgb_sift,CV_GRAY2BGR);
 
     // Draw the list of detected points
-    DrawKeyPoints(img1_rgb_sift,kpts_sift1);
-    DrawKeyPoints(img2_rgb_sift,kpts_sift2);
+    draw_keypoints(img1_rgb_sift,kpts_sift1);
+    draw_keypoints(img2_rgb_sift,kpts_sift2);
 
     // Create the new image with a line showing the correspondences
-    Composite_Image_with_Line(img1_rgb_sift,img2_rgb_sift,img_com_sift,inliers_sift,0);
+    draw_inliers(img1_rgb_sift,img2_rgb_sift,img_com_sift,inliers_sift,0);
     Display_Text(img_com_sift,nkpts_sift1,nkpts_sift2,nmatches_sift,ninliers_sift,ratio_sift,0);
 
 //*************************************************************************************
@@ -184,10 +190,11 @@ int main(int argc, char *argv[]) {
     nkpts_surf2 = kpts_surf2.size();
 
     // Matching Descriptors!!
-    findmatches_nndr(kpts_surf1,desc_surf1,kpts_surf2,desc_surf2,matches_surf,DRATIO);
+    matcher_l2->knnMatch(desc_surf1,desc_surf2,dmatches_surf,2);
+    matches2points_nndr(kpts_surf1,kpts_surf2,dmatches_surf,matches_surf,DRATIO);
 
     // Compute Inliers!!
-    Compute_Inliers_Homography(matches_surf,inliers_surf,MAX_H_ERROR,H);
+    compute_inliers_homography(matches_surf,inliers_surf,H,MAX_H_ERROR);
 
     // Compute the inliers statistics
     nmatches_surf = matches_surf.size()/2;
@@ -203,11 +210,11 @@ int main(int argc, char *argv[]) {
     cvtColor(img2,img2_rgb_surf,CV_GRAY2BGR);
 
     // Draw the list of detected points
-    DrawKeyPoints(img1_rgb_surf,kpts_surf1);
-    DrawKeyPoints(img2_rgb_surf,kpts_surf2);
+    draw_keypoints(img1_rgb_surf,kpts_surf1);
+    draw_keypoints(img2_rgb_surf,kpts_surf2);
 
     // Create the new image with a line showing the correspondences
-    Composite_Image_with_Line(img1_rgb_surf,img2_rgb_surf,img_com_surf,inliers_surf,1);
+    draw_inliers(img1_rgb_surf,img2_rgb_surf,img_com_surf,inliers_surf,1);
     Display_Text(img_com_surf,nkpts_surf1,nkpts_surf2,nmatches_surf,ninliers_surf,ratio_surf,1);
 
 //*************************************************************************************
@@ -242,10 +249,11 @@ int main(int argc, char *argv[]) {
     nkpts_kaze2 = kpts_kaze2.size();
 
     // Matching Descriptors!!
-    findmatches_nndr(kpts_kaze1,desc_kaze1,kpts_kaze2,desc_kaze2,matches_kaze,DRATIO);
+    matcher_l2->knnMatch(desc_kaze1,desc_kaze2,dmatches_kaze,2);
+    matches2points_nndr(kpts_kaze1,kpts_kaze2,dmatches_kaze,matches_kaze,DRATIO);
 
     // Compute Inliers!!
-    Compute_Inliers_Homography(matches_kaze,inliers_kaze,MAX_H_ERROR,H);
+    compute_inliers_homography(matches_kaze,inliers_kaze,H,MAX_H_ERROR);
 
     // Compute the inliers statistics
     nmatches_kaze = matches_kaze.size()/2;
@@ -261,11 +269,11 @@ int main(int argc, char *argv[]) {
     cvtColor(img2,img2_rgb_kaze,CV_GRAY2BGR);
 
     // Draw the list of detected points
-    DrawKeyPoints(img1_rgb_kaze,kpts_kaze1);
-    DrawKeyPoints(img2_rgb_kaze,kpts_kaze2);
+    draw_keypoints(img1_rgb_kaze,kpts_kaze1);
+    draw_keypoints(img2_rgb_kaze,kpts_kaze2);
 
     // Create the new image with a line showing the correspondences
-    Composite_Image_with_Line(img1_rgb_kaze,img2_rgb_kaze,img_com_kaze,inliers_kaze,2);
+    draw_inliers(img1_rgb_kaze,img2_rgb_kaze,img_com_kaze,inliers_kaze,2);
     Display_Text(img_com_kaze,nkpts_kaze1,nkpts_kaze2,nmatches_kaze,ninliers_kaze,ratio_kaze,2);
 
 //*************************************************************************************
@@ -273,6 +281,7 @@ int main(int argc, char *argv[]) {
 
     // Show matching statistics
     if (options.show_results == true) {
+
         cout << endl;
         cout << "SIFT Results" << endl;
         cout << "**************************************" << endl;

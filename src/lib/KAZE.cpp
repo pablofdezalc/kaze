@@ -140,8 +140,8 @@ int KAZE::Create_Nonlinear_Scale_Space(const cv::Mat &img) {
 
     // Copy the original image to the first level of the evolution
     img.copyTo(evolution_[0].Lt);
-    Gaussian_2D_Convolution(evolution_[0].Lt,evolution_[0].Lt,0,0,soffset_);
-    Gaussian_2D_Convolution(evolution_[0].Lt,evolution_[0].Lsmooth,0,0,sderivatives_);
+    gaussian_2D_convolution(evolution_[0].Lt,evolution_[0].Lt,0,0,soffset_);
+    gaussian_2D_convolution(evolution_[0].Lt,evolution_[0].Lsmooth,0,0,sderivatives_);
 
     // Firstly compute the kcontrast factor
     Compute_KContrast(evolution_[0].Lt,KCONTRAST_PERCENTILE);
@@ -157,7 +157,7 @@ int KAZE::Create_Nonlinear_Scale_Space(const cv::Mat &img) {
     // Now generate the rest of evolution levels
     for ( size_t i = 1; i < evolution_.size(); i++) {
 
-        Gaussian_2D_Convolution(evolution_[i-1].Lt,evolution_[i].Lsmooth,0,0,sderivatives_);
+        gaussian_2D_convolution(evolution_[i-1].Lt,evolution_[i].Lsmooth,0,0,sderivatives_);
 
         // Compute the Gaussian derivatives Lx and Ly
         Scharr(evolution_[i].Lsmooth,evolution_[i].Lx,CV_32F,1,0,1,0,BORDER_DEFAULT);
@@ -165,13 +165,13 @@ int KAZE::Create_Nonlinear_Scale_Space(const cv::Mat &img) {
 
         // Compute the conductivity equation
         if (diffusivity_ == 0) {
-            PM_G1(evolution_[i].Lx,evolution_[i].Ly,evolution_[i].Lflow,kcontrast_);
+            pm_g1(evolution_[i].Lx,evolution_[i].Ly,evolution_[i].Lflow,kcontrast_);
         }
         else if (diffusivity_ == 1) {
-            PM_G2(evolution_[i].Lx,evolution_[i].Ly,evolution_[i].Lflow,kcontrast_);
+            pm_g2(evolution_[i].Lx,evolution_[i].Ly,evolution_[i].Lflow,kcontrast_);
         }
         else if (diffusivity_ == 2) {
-            Weickert_Diffusivity(evolution_[i].Lx,evolution_[i].Ly,evolution_[i].Lflow,kcontrast_);
+            weickert_diffusivity(evolution_[i].Lx,evolution_[i].Ly,evolution_[i].Lflow,kcontrast_);
         }
 
         // Perform the evolution step with AOS
@@ -205,7 +205,7 @@ void KAZE::Compute_KContrast(const cv::Mat &img, const float &kpercentile) {
     }
 
     if (COMPUTE_KCONTRAST == true) {
-        kcontrast_ = Compute_K_Percentile(img,kpercentile,sderivatives_,KCONTRAST_NBINS,0,0);
+        kcontrast_ = compute_k_percentile(img,kpercentile,sderivatives_,KCONTRAST_NBINS,0,0);
     }
 
     if (verbosity_ == true) {
@@ -236,11 +236,11 @@ void KAZE::Compute_Multiscale_Derivatives(void)
         }
 
         // Compute multiscale derivatives for the detector
-        Compute_Scharr_Derivatives(evolution_[i].Lsmooth,evolution_[i].Lx,1,0,evolution_[i].sigma_size);
-        Compute_Scharr_Derivatives(evolution_[i].Lsmooth,evolution_[i].Ly,0,1,evolution_[i].sigma_size);
-        Compute_Scharr_Derivatives(evolution_[i].Lx,evolution_[i].Lxx,1,0,evolution_[i].sigma_size);
-        Compute_Scharr_Derivatives(evolution_[i].Ly,evolution_[i].Lyy,0,1,evolution_[i].sigma_size);
-        Compute_Scharr_Derivatives(evolution_[i].Lx,evolution_[i].Lxy,0,1,evolution_[i].sigma_size);
+        compute_scharr_derivatives(evolution_[i].Lsmooth,evolution_[i].Lx,1,0,evolution_[i].sigma_size);
+        compute_scharr_derivatives(evolution_[i].Lsmooth,evolution_[i].Ly,0,1,evolution_[i].sigma_size);
+        compute_scharr_derivatives(evolution_[i].Lx,evolution_[i].Lxx,1,0,evolution_[i].sigma_size);
+        compute_scharr_derivatives(evolution_[i].Ly,evolution_[i].Lyy,0,1,evolution_[i].sigma_size);
+        compute_scharr_derivatives(evolution_[i].Lx,evolution_[i].Lxy,0,1,evolution_[i].sigma_size);
 
         evolution_[i].Lx = evolution_[i].Lx*((evolution_[i].sigma_size));
         evolution_[i].Ly = evolution_[i].Ly*((evolution_[i].sigma_size));
@@ -431,11 +431,11 @@ void KAZE::Find_Extremum_Threading(const int& level) {
             if (value > dthreshold_ && value >= DEFAULT_MIN_DETECTOR_THRESHOLD) {
                 if (value >= *(evolution_[level].Ldet.ptr<float>(ix)+jx-1)) {
                     // First check on the same scale
-                    if (Check_Maximum_Neighbourhood(evolution_[level].Ldet,1,value,ix,jx,1)) {
+                    if (check_maximum_neighbourhood(evolution_[level].Ldet,1,value,ix,jx,1)) {
                         // Now check on the lower scale
-                        if (Check_Maximum_Neighbourhood(evolution_[level-1].Ldet,1,value,ix,jx,0)) {
+                        if (check_maximum_neighbourhood(evolution_[level-1].Ldet,1,value,ix,jx,0)) {
                             // Now check on the upper scale
-                            if (Check_Maximum_Neighbourhood(evolution_[level+1].Ldet,1,value,ix,jx,0)) {
+                            if (check_maximum_neighbourhood(evolution_[level+1].Ldet,1,value,ix,jx,0)) {
                                 is_extremum = true;
                             }
                         }
@@ -2665,7 +2665,7 @@ void KAZE::Save_Nonlinear_Scale_Space(void) {
     char outputFile[NMAX_CHAR];
 
     for (size_t i = 0; i < evolution_.size(); i++) {
-        Convert_Scale(evolution_[i].Lflow);
+        convert_scale(evolution_[i].Lflow);
         evolution_[i].Lflow.convertTo(img_aux,CV_8U,255.0,0);
         sprintf(outputFile,"../../output/images/nl_evolution_%02ld.jpg",i);
         imwrite(outputFile,img_aux);
@@ -2685,7 +2685,7 @@ void KAZE::Save_Detector_Responses(void) {
     char outputFile[NMAX_CHAR];
 
     for (size_t i = 0; i < evolution_.size(); i++) {
-        Convert_Scale(evolution_[i].Ldet);
+        convert_scale(evolution_[i].Ldet);
         evolution_[i].Ldet.convertTo(img_aux,CV_8U,255.0,0);
         sprintf(outputFile,"../../output/images/nl_detector_%02ld.jpg",i);
         imwrite(outputFile,img_aux);
@@ -2705,7 +2705,7 @@ void KAZE::Save_Flow_Responses(void) {
     char outputFile[NMAX_CHAR];
 
     for (size_t i = 0; i < evolution_.size(); i++) {
-        Convert_Scale(evolution_[i].Lflow);
+        convert_scale(evolution_[i].Lflow);
         evolution_[i].Lflow.convertTo(img_aux,CV_8U,255.0,0);
         sprintf(outputFile,"../../output/images/flow/flow_%02ld.jpg",i);
         imwrite(outputFile,img_aux);
@@ -2816,4 +2816,17 @@ inline void checkDescriptorLimits(int &x, int &y, const int& width, const int& h
     if (y > height-1) {
         y = height-1;
     }
+}
+
+//*************************************************************************************
+//*************************************************************************************
+
+/**
+ * @brief This funtion rounds float to nearest integer
+ * @param flt Input float
+ * @return dst Nearest integer
+ */
+inline int fRound(const float& flt)
+{
+    return (int)(flt+0.5f);
 }

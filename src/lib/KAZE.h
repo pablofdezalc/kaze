@@ -271,6 +271,7 @@ float getAngle(const float& x, const float& y);
 float gaussian(const float& x, const float& y, const float& sig);
 void checkDescriptorLimits(int &x, int &y, const int& width, const int& height);
 void clippingDescriptor(float *desc, const int& dsize, const int& niter, const float& ratio);
+int fRound(const float& flt);
 
 //*************************************************************************************
 //*************************************************************************************

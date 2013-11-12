@@ -22,16 +22,20 @@
 //*************************************************************************************
 
 // Declaration of functions
-void Gaussian_2D_Convolution(const cv::Mat &src, cv::Mat &dst, unsigned int ksize_x, unsigned int ksize_y, float sigma);
-void PM_G1(const cv::Mat &Lx, const cv::Mat &Ly, cv::Mat &dst, float k);
-void PM_G2(const cv::Mat &Lx, const cv::Mat &Ly, cv::Mat &dst, float k);
-void Weickert_Diffusivity(const cv::Mat &Lx, const cv::Mat &Ly, cv::Mat &dst, float k);
-float Compute_K_Percentile(const cv::Mat &img, float perc, float gscale, unsigned int nbins, unsigned int ksize_x, unsigned int ksize_y);
-void Compute_Scharr_Derivatives(const cv::Mat &src, cv::Mat &dst, int xorder, int yorder, int scale);
-void Compute_Deriv_Kernels(cv::OutputArray _kx, cv::OutputArray _ky, int dx, int dy, int scale);
-void NLD_Step_Scalar(cv::Mat &Ld2, const cv::Mat &Ld1, const cv::Mat &c, float stepsize);
-bool Check_Maximum_Neighbourhood(cv::Mat &img, int dsize, float value, int row, int col, bool same_img );
-bool Check_Minimum_Neighbourhood(cv::Mat &img, int dsize, float value, int row, int col, bool same_img );
+void gaussian_2D_convolution(const cv::Mat& src, cv::Mat& dst, const size_t& ksize_x,
+                             const size_t& ksize_y, const float& sigma);
+void pm_g1(const cv::Mat& Lx, const cv::Mat& Ly, cv::Mat& dst, const float& k);
+void pm_g2(const cv::Mat &Lx, const cv::Mat& Ly, cv::Mat& dst, const float& k);
+void weickert_diffusivity(const cv::Mat& Lx, const cv::Mat& Ly, cv::Mat& dst, const float& k);
+float compute_k_percentile(const cv::Mat& img, const float& perc, const float& gscale,
+                           const size_t& nbins, const size_t& ksize_x, const size_t& ksize_y);
+void compute_scharr_derivatives(const cv::Mat& src, cv::Mat& dst,
+                                const size_t& xorder, const size_t& yorder, const size_t& scale);
+void compute_derivative_kernels(cv::OutputArray _kx, cv::OutputArray _ky,
+                                const size_t& dx, const size_t& dy, const size_t& scale_);
+void nld_step_scalar(cv::Mat& Ld, const cv::Mat& c, cv::Mat& Lstep, const float& stepsize);
+bool check_maximum_neighbourhood(const cv::Mat& img, const int& dsize, const float& value,
+                                 const int& row, const int& col, const bool& same_img);
 
 //*************************************************************************************
 //*************************************************************************************
