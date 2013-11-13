@@ -27,10 +27,11 @@
 //*************************************************************************************
 
 // Declaration of functions
-void Show_Input_Options_Help(void);
-int Parse_Input_Options(toptions &options, char *img_name, char *img_name2, char *hfile, char *kfile, int argc, char *argv[] );
-void Save_Matching_Image(cv::Mat img);
-void Display_Text(cv::Mat &img_rgb, int npoints1, int npoints2, int nmatches, int ninliers, float ratio, int index);
+void show_input_options_help(void);
+int parse_input_options(toptions &options, char *img_name, char *img_name2, char *hfile, char *kfile, int argc, char *argv[] );
+void save_matching_image(const cv::Mat& img);
+void display_text(cv::Mat &img_rgb, const int& npoints1, const int& npoints2, const int& nmatches, const int& ninliers,
+                  const float& ratio, const int& index);
 
 //*************************************************************************************
 //*************************************************************************************
