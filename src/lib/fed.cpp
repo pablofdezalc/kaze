@@ -66,8 +66,7 @@ int fed_tau_by_process_time(const float& T, const int& M, const float& tau_max,
  * @param reordering Reordering flag
  * @param tau The vector with the dynamic step sizes
  */
-int fed_tau_by_cycle_time(const float& t, const float& tau_max,
-                          const bool& reordering, std::vector<float> &tau) {
+int fed_tau_by_cycle_time(const float& t, const float& tau_max, const bool& reordering, std::vector<float> &tau) {
   int n = 0;          // Number of time steps
   float scale = 0.0;  // Ratio of t we search to maximal t
 

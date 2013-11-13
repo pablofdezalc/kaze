@@ -313,7 +313,6 @@ int main(int argc, char *argv[]) {
     cout << "KAZE Features Extraction Time (ms): " << tkaze << endl;
 
     while (1) {
-
       imshow("SIFT",img_com_sift);
       imshow("SURF",img_com_surf);
       imshow("KAZE",img_com_kaze);
@@ -339,7 +338,6 @@ int main(int argc, char *argv[]) {
  * @param img Image to be saved
  */
 void save_matching_image(const cv::Mat& img) {
-
   char outputFile[NMAX_CHAR];
   sprintf(outputFile,"../output/images/image_matching.jpg");
   imwrite(outputFile,img);
