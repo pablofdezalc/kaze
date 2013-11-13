@@ -122,8 +122,8 @@ void copy_and_convert_scale(const cv::Mat& src, cv::Mat& dst) {
  * @param img Input/Output Image
  * @param dst Vector of keypoints
  */
-void draw_keypoints(cv::Mat& img, const std::vector<cv::KeyPoint>& kpts)
-{
+void draw_keypoints(cv::Mat& img, const std::vector<cv::KeyPoint>& kpts) {
+
   int x = 0, y = 0;
   float s = 0.0;
 
@@ -131,7 +131,7 @@ void draw_keypoints(cv::Mat& img, const std::vector<cv::KeyPoint>& kpts)
 
     x = kpts[i].pt.x;
     y = kpts[i].pt.y;
-    s = kpts[i].size*.5;
+    s = kpts[i].size;
 
     // Draw a circle centered on the interest point
     circle(img,cv::Point(x,y),s,CV_RGB(0,0,255),1);
