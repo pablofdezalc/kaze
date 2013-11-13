@@ -47,7 +47,8 @@ void compute_inliers_ransac(const std::vector<cv::Point2f> &matches, std::vector
 void compute_inliers_homography(const std::vector<cv::Point2f> &matches,
                                 std::vector<cv::Point2f> &inliers, const cv::Mat &H, const float& min_error);
 void draw_inliers(const cv::Mat &img1, const cv::Mat &img2, cv::Mat &img_com, const std::vector<cv::Point2f> &ptpairs);
-void draw_inliers(const cv::Mat &img1, const cv::Mat &img2, cv::Mat &img_com, const std::vector<cv::Point2f> &ptpairs, const int& color);
+void draw_inliers(const cv::Mat &img1, const cv::Mat &img2, cv::Mat &img_com, const std::vector<cv::Point2f> &ptpairs,
+                  const int& color);
 void read_homography(const char *hFile, cv::Mat& H1toN);
 
 //*************************************************************************************

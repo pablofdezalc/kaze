@@ -870,6 +870,9 @@ void KAZE::Compute_Main_Orientation_SURF(cv::KeyPoint &kpt)
       kpt.angle = getAngle(sumX, sumY);
     }
   }
+
+  // Transform the angle to degrees
+  kpt.angle *= (180.0/CV_PI);
 }
 
 //*************************************************************************************
@@ -1001,7 +1004,7 @@ void KAZE::Get_SURF_Descriptor_64(const cv::KeyPoint &kpt, float *desc) {
   yf = kpt.pt.y;
   xf = kpt.pt.x;
   scale = fRound(kpt.size/2.0);
-  angle = kpt.angle;
+  angle = kpt.angle*(CV_PI/180.0);
   level = kpt.class_id;
   co = cos(angle);
   si = sin(angle);
@@ -1244,7 +1247,7 @@ void KAZE::Get_MSURF_Descriptor_64(const cv::KeyPoint &kpt, float *desc)
   yf = kpt.pt.y;
   xf = kpt.pt.x;
   scale = fRound(kpt.size/2.0);
-  angle = kpt.angle;
+  angle = kpt.angle*(CV_PI/180.0);
   level = kpt.class_id;
   co = cos(angle);
   si = sin(angle);
@@ -1509,7 +1512,7 @@ void KAZE::Get_GSURF_Descriptor_64(const cv::KeyPoint &kpt, float *desc)
   yf = kpt.pt.y;
   xf = kpt.pt.x;
   scale = fRound(kpt.size/2.0);
-  angle = kpt.angle;
+  angle = kpt.angle*(CV_PI/180.0);
   level = kpt.class_id;
   co = cos(angle);
   si = sin(angle);
@@ -1614,7 +1617,6 @@ void KAZE::Get_GSURF_Descriptor_64(const cv::KeyPoint &kpt, float *desc)
   if (USE_CLIPPING_NORMALIZATION == true) {
     clippingDescriptor(desc,dsize,CLIPPING_NORMALIZATION_NITER,CLIPPING_NORMALIZATION_RATIO);
   }
-
 }
 
 //*************************************************************************************
@@ -1767,7 +1769,7 @@ void KAZE::Get_SURF_Descriptor_128(const cv::KeyPoint &kpt, float *desc)
   yf = kpt.pt.y;
   xf = kpt.pt.x;
   scale = fRound(kpt.size/2.0);
-  angle = kpt.angle;
+  angle = kpt.angle*(CV_PI/180.0);
   level = kpt.class_id;
   co = cos(angle);
   si = sin(angle);
@@ -2056,7 +2058,7 @@ void KAZE::Get_MSURF_Descriptor_128(const cv::KeyPoint &kpt, float *desc) {
   yf = kpt.pt.y;
   xf = kpt.pt.x;
   scale = fRound(kpt.size/2.0);
-  angle = kpt.angle;
+  angle = kpt.angle*(CV_PI/180.0);
   level = kpt.class_id;
   co = cos(angle);
   si = sin(angle);
@@ -2367,7 +2369,7 @@ void KAZE::Get_GSURF_Descriptor_128(const cv::KeyPoint &kpt, float *desc) {
   yf = kpt.pt.y;
   xf = kpt.pt.x;
   scale = fRound(kpt.size/2.0);
-  angle = kpt.angle;
+  angle = kpt.angle*(CV_PI/180.0);
   level = kpt.class_id;
   co = cos(angle);
   si = sin(angle);
@@ -2740,7 +2742,8 @@ void KAZE::Save_Flow_Responses(void) {
 //*************************************************************************************
 
 /**
- * @brief This function computes the angle from the vector given by (X Y). From 0 to 2*Pi
+ * @brief This function computes the angle from the vector given by (x y)
+ * The angle is expressed in degrees from 0 to 360, same convention as i OpenCV
 */
 inline float getAngle(const float& x, const float& y) {
 
@@ -2750,15 +2753,15 @@ inline float getAngle(const float& x, const float& y) {
   }
 
   if (x < 0 && y >= 0) {
-    return CV_PI - atan(-y/x);
+    return (CV_PI - atan(-y/x));
   }
 
   if(x < 0 && y < 0) {
-    return CV_PI + atan(y/x);
+    return (CV_PI + atan(y/x));
   }
 
   if(x >= 0 && y < 0) {
-    return 2.0*CV_PI - atan(-y/x);
+    return (2.0*CV_PI - atan(-y/x));
   }
 
   return 0;
