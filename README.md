@@ -92,22 +92,22 @@ Changes:
 ## What is this file?
 
 This file explains how to make use of source code for computing KAZE features
-and an a practical image matching application.
+and two practical image matching applications.
 
 ## Library Dependencies
 
-The code is mainly based on the OpenCV library using the C++ interface.
+The code is mainly based on the **OpenCV** library using the C++ interface.
 
 In order to compile the code, the following libraries to be installed on your system:
-- OpenCV version 2.4.0 or higher
-- Cmake version 2.6 or higher
+- **OpenCV** version 2.4.0 or higher
+- **Cmake** version 2.6 or higher
 
-If you want to use OpenMP parallelization you will need to install OpenMP in your system
-In Linux you can do this by installing the gomp library
+If you want to use **OpenMP** parallelization you will need to install OpenMP in your system
+In Linux you can do this by installing the **gomp** library
 
-- Since version 1.5.2 KAZE features does not use Boost
+- Since version 1.5.2 KAZE features does not use **Boost**
 
-You will also need doxygen in case you need to generate the documentation
+You will also need **doxygen** in case you need to generate the documentation
 
 Tested compilers
 - GCC 4.2-4.7
