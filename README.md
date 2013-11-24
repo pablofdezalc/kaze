@@ -215,46 +215,49 @@ and SURF. All these implementations are based on the OpenCV library.
 The program assumes that the ground truth transformation is provided
 
 For running the program you need to type in the command line the following arguments:
-./kaze_compare img1.jpg img2.pgm homography.txt options
+`./kaze_compare img1.jpg img2.pgm homography.txt [options]`
 
 For example, running kaze_compare with the first and third images from the boat dataset you should get the following results:
 
-./kaze_compare ../../datasets/boat/img1.pgm ../../datasets/boat/img3.pgm ../../datasets/boat/H1to3p --dthreshold 0.001 --dthreshold2 0.001 --diffusivity 1 --descriptor 1 --nsublevels 4
-
+```
+./kaze_compare ../../datasets/boat/img1.pgm
+               ../../datasets/boat/img3.pgm
+               ../../datasets/boat/H1to3p
+```
 ```
 SIFT Results
 **************************************
 Number of Keypoints Image 1: 2000
 Number of Keypoints Image 2: 2000
-Number of Matches: 167
-Number of Inliers: 166
-Number of Outliers: 1
-Inliers Ratio: 99.4012
-SIFT Features Extraction Time (ms): 708.837
+Number of Matches: 584
+Number of Inliers: 575
+Number of Outliers: 9
+Inliers Ratio: 98.4589
+SIFT Features Extraction Time (ms): 964.85
 
 SURF Results
 **************************************
 Number of Keypoints Image 1: 4021
 Number of Keypoints Image 2: 3162
-Number of Matches: 631
-Number of Inliers: 543
-Number of Outliers: 88
-Inliers Ratio: 86.0539
-SURF Features Extraction Time (ms): 1186.99
+Number of Matches: 301
+Number of Inliers: 264
+Number of Outliers: 37
+Inliers Ratio: 87.7076
+SURF Features Extraction Time (ms): 373.713
 
 KAZE Results
 **************************************
-Number of Keypoints Image 1: 5434
-Number of Keypoints Image 2: 4519
-Number of Matches: 1986
-Number of Inliers: 1851
-Number of Outliers: 135
-Inliers Ratio: 93.2024
-KAZE Features Extraction Time (ms): 2715.81
+Number of Keypoints Image 1: 5170
+Number of Keypoints Image 2: 4375
+Number of Matches: 1309
+Number of Inliers: 1246
+Number of Outliers: 63
+Inliers Ratio: 95.1872
+KAZE Features Extraction Time (ms): 2254.6
 ```
 
 One of the interesting reasons why you should use KAZE features is because is open source and you can use that freely even in commercial applications, which is not the case
-of SIFT and SURF. In general, KAZE results are superior to the other OpenCV methods (in terms of number of inliers and ratio), while being more slower to compute.
+of SIFT and SURF. The code is released under the BSD license. In general, KAZE results are superior to the other OpenCV methods (in terms of number of inliers and ratio), while being more slower to compute.
 Future work will try to speed-up the process as much as possible while keeping good performance
 
 ## Citation
