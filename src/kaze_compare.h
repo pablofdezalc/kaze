@@ -26,11 +26,16 @@
 //*************************************************************************************
 //*************************************************************************************
 
+// Some image matching options
+const float MAX_H_ERROR = 2.50;	// Maximum error in pixels to accept an inlier
+const float DRATIO = 0.6;		// NNDR Matching value
+
+//*************************************************************************************
+//*************************************************************************************
+
 // Declaration of functions
-void Show_Input_Options_Help(void);
-int Parse_Input_Options(toptions &options, char *img_name, char *img_name2, char *hfile, char *kfile, int argc, char *argv[] );
-void Save_Matching_Image(cv::Mat img);
-void Display_Text(cv::Mat &img_rgb, int npoints1, int npoints2, int nmatches, int ninliers, float ratio, int index);
+int parse_input_options(KAZEOptions& options, std::string& img_path1, std::string& img_path2,
+                        std::string& homography_path, int argc, char *argv[]);
 
 //*************************************************************************************
 //*************************************************************************************

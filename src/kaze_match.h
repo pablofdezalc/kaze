@@ -21,9 +21,17 @@
 //*************************************************************************************
 //*************************************************************************************
 
+// Some image matching options
+const bool COMPUTE_HOMOGRAPHY = false;	// 0->Use ground truth homography, 1->Estimate homography with RANSAC
+const float MAX_H_ERROR = 5.0;	// Maximum error in pixels to accept an inlier
+const float DRATIO = .60;		// NNDR Matching value
+
+//*************************************************************************************
+//*************************************************************************************
+
 // Declaration of functions
-void show_input_options_help(void);
-int parse_input_options(toptions &options, char *img_name, char *img_name2, char *hfile, char *kfile, int argc, char *argv[] );
+int parse_input_options(KAZEOptions& options, std::string& img_path1, std::string& img_path2,
+                        std::string& homography_path, int argc, char *argv[]);
 void save_matching_image(const cv::Mat& img);
 
 //*************************************************************************************

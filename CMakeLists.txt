@@ -1,4 +1,5 @@
-PROJECT(KAZE_features)
+# ============================================================================ #
+project(KAZE_features)
 
 cmake_minimum_required(VERSION 2.6)
 
@@ -6,15 +7,20 @@ if(COMMAND cmake_policy)
  cmake_policy(SET CMP0003 NEW)
 endif(COMMAND cmake_policy)
 
-# Find external libraries
-find_package(OpenCV REQUIRED)
-find_package(OpenMP)
-
+# ============================================================================ #
+# Where to output binaries and libraries
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/lib")
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/lib")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/bin")
 set(CMAKE_BUILD_TYPE Release)
 
+# ============================================================================ #
+# Find external libraries and dependencies
+find_package(OpenCV REQUIRED)
+find_package(OpenMP)
+find_package(Doxygen)
+
+# ============================================================================ #
 # Detect c++11 support
 if(CMAKE_COMPILER_IS_GNUCXX)
    execute_process(COMMAND ${CMAKE_C_COMPILER} -dumpversion OUTPUT_VARIABLE GCC_VERSION)
@@ -52,16 +58,7 @@ if(OPENMP_FOUND)
     endif(UNIX)
 endif(OPENMP_FOUND)
 
-# Option for using FED or AOS in the nonlinear diffusion equation discretization
-option(USE_FED
-       "Flag for using FED. Faster and more accurate than AOS."
-       ON)
-
-if(USE_FED)
-  message("-- Using FED")
-  add_definitions(-DUSE_FED)
-endif(USE_FED)
-
+# ============================================================================ #
 INCLUDE_DIRECTORIES("src/lib/")
 ADD_DEFINITIONS(-D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE)
 
@@ -80,6 +77,8 @@ TARGET_LINK_LIBRARIES(KAZE
   ${OpenCV_LIBS}
 )
 
+# ============================================================================ #
+# Feature detector program
 ADD_EXECUTABLE(
   kaze_features
   src/kaze_features.cpp
@@ -88,8 +87,10 @@ ADD_EXECUTABLE(
 TARGET_LINK_LIBRARIES(
   kaze_features
   KAZE
-  )
+)
 
+# ============================================================================ #
+# Image matching program
 ADD_EXECUTABLE(
   kaze_match
   src/kaze_match.cpp
@@ -100,6 +101,8 @@ TARGET_LINK_LIBRARIES(
   KAZE
 )
 
+# ============================================================================ #
+# Program that compares KAZE with SURF and SIFT
 ADD_EXECUTABLE(
   kaze_compare
   src/kaze_compare.cpp
@@ -110,6 +113,8 @@ TARGET_LINK_LIBRARIES(
   KAZE
 )
 
+# ============================================================================ #
+# Library installation
 install(TARGETS KAZE DESTINATION /usr/local/kaze/lib)
 install(FILES
     src/lib/KAZE.h
@@ -120,8 +125,16 @@ install(FILES
     /usr/local/kaze/include
 )
 
-################################
+# ============================================================================ #
+# Generate Doxygen-based documentation project
+if(DOXYGEN_FOUND)
+  add_custom_target(kaze_documentation
+    ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    COMMENT "Generating API documentation with Doxygen" VERBATIM)
+endif(DOXYGEN_FOUND)
 
+# ============================================================================ #
 foreach(dir ${DIRS})
   FILE(GLOB files ${dir}/*.h*)
   LIST(APPEND h_files ${files})

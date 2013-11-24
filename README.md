@@ -1,10 +1,23 @@
 
 README - KAZE Features
 
-Version: 1.5.2
-Date: 27-06-2013
+Version: 1.6.0
+Date: 23-11-2013
 
 ---------------------------------------------------
+
+## CHANGELOG
+Version: 1.6.0
+Changes:
+- Code style has been changed substantially to match portability with other libraries
+- KAZE Features now uses by default Fast Explicit Diffusion (FED) for discretizing the
+  nonlinear diffusion equation. See use_fed command line option.
+  With FED, KAZE is much faster than using AOS
+
+  For more information about FED, please check:
+1. **Fast Explicit Diffusion for Accelerated Features in Nonlinear Scale Spaces**. Pablo F. Alcantarilla, J. Nuevo and Adrien Bartoli. _In British Machine Vision Conference (BMVC), Bristol, UK, September 2013_
+
+2. **KAZE Features**. Pablo F. Alcantarilla, Adrien Bartoli and Andrew J. Davison. _In European Conference on Computer Vision (ECCV), Fiorenze, Italy, October 2012_
 
 Version: 1.5.2
 Changes:
@@ -75,12 +88,12 @@ Changes:
 
 ---------------------------------------------------
 
-What is this file?
+## What is this file?
 
 This file explains how to make use of source code for computing KAZE features
 and an a practical image matching application.
 
-Library Dependencies
+## Library Dependencies
 ------------------------------------------------------------------------------------------------------
 
 The code is mainly based on the OpenCV library using the C++ interface.
@@ -104,21 +117,24 @@ Tested systems:
 - Kubuntu 10.04
 - Mac OS 10.6.8
 
-Getting Started
+## Getting Started
 ---------------------------------------------------
 
 Compiling:
-$] mkdir build
-$] cd build
-$] cmake ..
-$] make
+1. `$ mkdir build`
+2. `$ cd build>`
+3. `$ cmake ..`
+4. `$ make`
+
+Additionally you can also install the library in `/usr/local/kaze/lib` by typing:
+`$ sudo make install`
 
 If the compilation is successful you should see three executables in the folder bin:
-- kaze_features
-- kaze_match
-- kaze_compare
+- `kaze_features`
+- `kaze_match`
+- `kaze_compare`
 
-Additionally, the library libKAZE.so will be created in the folder lib.
+Additionally, the library `libKAZE[.a, .lib]` will be created in the folder `lib`.
 
 If there is any error in the compilation, perhaps some libraries are missing.
 Please check the Library dependencies section.
@@ -126,18 +142,16 @@ Please check the Library dependencies section.
 Examples:
 To see how the code works, examine the two examples provided.
 
-Documentation
-------------------------------------------------------------------------------------------------------
+## Documentation
 In the working folder type:
-doxygen 
+`doxygen`
 
 The documentation will be generated in the ./doc folder
 
-Computing KAZE Features
-------------------------------------------------------------------------------------------------------
+## Computing KAZE Features
 
 For running the program you need to type in the command line the following arguments:
-./kaze_features img.jpg options
+`./kaze_features img.jpg [options]`
 
 The options are not mandatory. In case you do not specify additional options, default arguments will be
 used. Here is a description of the additional options:
@@ -252,14 +266,11 @@ One of the interesting reasons why you should use KAZE features is because is op
 of SIFT and SURF. In general, KAZE results are superior to the other OpenCV methods (in terms of number of inliers and ratio), while being more slower to compute.
 Future work will try to speed-up the process as much as possible while keeping good performance
 
-Citation
-------------------------------------------------------------------------------------------------------
+## Citation
 If you use this code as part of your work, please cite the following paper:
-KAZE Features. Pablo F. Alcantarilla, Adrien Bartoli and Andrew J. Davison.
-In European Conference on Computer Vision (ECCV), Fiorenze, Italy. October 2012.
+1. **KAZE Features**. Pablo F. Alcantarilla, Adrien Bartoli and Andrew J. Davison. _In European Conference on Computer Vision (ECCV), Fiorenze, Italy. October 2012_.
 
-Contact Info
-------------------------------------------------------------------------------------------------------
+## Contact Info
 In case you have any question, find any bug in the code or want to share some improvements,
 please contact me:
 Pablo F. Alcantarilla

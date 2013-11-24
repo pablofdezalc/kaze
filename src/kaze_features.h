@@ -22,9 +22,10 @@
 //*************************************************************************************
 
 // Declaration of functions
-int Parse_Input_Options(toptions &options, char *img_name, char *kfile, int argc, char *argv[] );
-void Save_Image_with_Features(cv::Mat img);
-void Show_Input_Options_Help(void);
+int parse_input_options(KAZEOptions& options, std::string& img_path,
+                        std::string& kpts_path, int argc, char *argv[]);
+void save_image_with_features(cv::Mat& img);
+void show_input_options_help(void);
 
 //*************************************************************************************
 //*************************************************************************************
