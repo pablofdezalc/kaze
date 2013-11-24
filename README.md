@@ -1,10 +1,8 @@
 
-README - KAZE Features
+## README - KAZE Features
 
 Version: 1.6.0
 Date: 23-11-2013
-
----------------------------------------------------
 
 ## CHANGELOG
 Version: 1.6.0
@@ -14,10 +12,8 @@ Changes:
   nonlinear diffusion equation. See use_fed command line option.
   With FED, KAZE is much faster than using AOS
 
-  For more information about FED, please check:
+For more information about FED, please check:
 1. **Fast Explicit Diffusion for Accelerated Features in Nonlinear Scale Spaces**. Pablo F. Alcantarilla, J. Nuevo and Adrien Bartoli. _In British Machine Vision Conference (BMVC), Bristol, UK, September 2013_
-
-2. **KAZE Features**. Pablo F. Alcantarilla, Adrien Bartoli and Andrew J. Davison. _In European Conference on Computer Vision (ECCV), Fiorenze, Italy, October 2012_
 
 Version: 1.5.2
 Changes:
@@ -86,15 +82,12 @@ Changes:
 - kaze_compare program added that compares KAZE against SIFT, SURF (OpenCV)
 - Now kaze_match and kaze_compare can work with images that have different resolution between them
 
----------------------------------------------------
-
 ## What is this file?
 
 This file explains how to make use of source code for computing KAZE features
 and an a practical image matching application.
 
 ## Library Dependencies
-------------------------------------------------------------------------------------------------------
 
 The code is mainly based on the OpenCV library using the C++ interface.
 
@@ -105,7 +98,7 @@ In order to compile the code, the following libraries to be installed on your sy
 If you want to use OpenMP parallelization you will need to install OpenMP in your system
 In Linux you can do this by installing the gomp library
 
-Since version 1.5.2 KAZE features does not use Boost
+- Since version 1.5.2 KAZE features does not use Boost
 
 You will also need doxygen in case you need to generate the documentation
 
@@ -118,7 +111,6 @@ Tested systems:
 - Mac OS 10.6.8
 
 ## Getting Started
----------------------------------------------------
 
 Compiling:
 1. `$ mkdir build`
@@ -134,7 +126,7 @@ If the compilation is successful you should see three executables in the folder 
 - `kaze_match`
 - `kaze_compare`
 
-Additionally, the library `libKAZE[.a, .lib]` will be created in the folder `lib`.
+Additionally, the library `libKAZE[.a, .lib]` will be created in the `lib` folder.
 
 If there is any error in the compilation, perhaps some libraries are missing.
 Please check the Library dependencies section.
@@ -146,7 +138,7 @@ To see how the code works, examine the two examples provided.
 In the working folder type:
 `doxygen`
 
-The documentation will be generated in the ./doc folder
+The documentation will be generated in the `doc` folder.
 
 ## Computing KAZE Features
 
@@ -156,56 +148,42 @@ For running the program you need to type in the command line the following argum
 The options are not mandatory. In case you do not specify additional options, default arguments will be
 used. Here is a description of the additional options:
 
---verbose if verbosity is required
---help for showing the command line options
---soffset the base scale offset (sigma units)
---omax the coarsest nonlinear scale space level (sigma units)
---nsublevels number of sublevels per octave
---dthreshold Feature detector threshold response for accepting points
---descriptor Descriptor Type 0 -> SURF, 1 -> M-SURF
---upright 0 -> Rotation Invariant, 1 -> No Rotation Invariant
---extended 0 -> Normal Descriptor (64), 1 -> Extended Descriptor (128)
---show_results 1 in case we want to show detection results. 0 otherwise
+- `--verbose` if verbosity is required
+- `--help` for showing the command line options
+- `--soffset` the base scale offset (sigma units)
+- `--omax` the coarsest nonlinear scale space level (sigma units)
+- `--nsublevels` number of sublevels per octave
+- `--dthreshold` Feature detector threshold response for accepting points
+- `--descriptor` Descriptor Type 0 -> SURF, 1 -> M-SURF, 2 -> G-SURF
+- `--use_fed` 0 -> AOS, 1 -> FED
+- `--upright` 0 -> Rotation Invariant, 1 -> No Rotation Invariant
+- `--extended 0` -> Normal Descriptor (64), 1 -> Extended Descriptor (128)
+- `--show_results` 1 in case we want to show detection results. 0 otherwise
 
 Important Things:
-• Check config.h in case you would like to change the value of some default settings
-• The k constrast factor is computed as the 70% percentile of the gradient histogram of a
+- Check config.h in case you would like to change the value of some default settings
+- The k constrast factor is computed as the 70% percentile of the gradient histogram of a
 smoothed version of the original image. Normally, this empirical value gives good results, but
 depending on the input image the diffusion will not be good enough. Therefore I highly
 recommend you to visualize the output images from save_scale_space and test with other k
 factors if the results are not satisfactory
 
-Image Matching Example with KAZE Features
-------------------------------------------------------------------------------------------------------
+## Image Matching Example with KAZE Features
 
 The code contains one program to perform image matching between two images.
 If the ground truth transformation is not provided, the program estimates a fundamental matrix using
 RANSAC between the set of correspondences between the two images.
 
 For running the program you need to type in the command line the following arguments:
-./kaze_match img1.jpg img2.pgm homography.txt options
+`./kaze_match img1.jpg img2.pgm homography.txt [options]`
 
-The options are not mandatory. In case you do not specify additional options, default arguments will be
-used. Here is a description of the additional options:
---verbose if verbosity is required
---help for showing the command line options
---soffset the base scale offset (sigma units)
---omax the coarsest nonlinear scale space level (sigma units)
---nsublevels number of sublevels per octave
---dthreshold Feature detector threshold response for accepting points for the first image (0.001 can be a good value)
---dthreshold2 Feature detector threshold response for accepting points for the second image (0.001 can be a good value)
---descriptor Descriptor Type 0 -> SURF, 1 -> M-SURF, 2 -> G-SURF
---upright 0 -> Rotation Invariant, 1 -> No Rotation Invariant
---extended 0 -> Normal Descriptor (64), 1 -> Extended Descriptor (128)
---show_results 1 in case we want to show detection results. 0 otherwise
-
-The datasets folder contains the Iguazu dataset described in the paper and additional datasets from Mykolajczyk et al. evaluation.
-The Iguazu dataset was generated by adding Gaussian noise of increasing standard deviation.
+The datasets folder contains the **Iguazu** dataset described in the paper and additional datasets from Mykolajczyk et al. evaluation.
+The **Iguazu** dataset was generated by adding Gaussian noise of increasing standard deviation.
 
 For example, with the default configuration parameters used in the current code version you should get
 the following results:
 
-./kaze_match ../../datasets/iguazu/img1.pgm ../../datasets/iguazu/img4.pgm ../../datasets/iguazu/H1to4p --dthreshold 0.001 --dthreshold2 0.001 --diffusivity 1 --descriptor 1 --upright 1 --nsublevels 4
+`./kaze_match ../../datasets/iguazu/img1.pgm ../../datasets/iguazu/img4.pgm ../../datasets/iguazu/H1to4p --dthreshold 0.001 --dthreshold2 0.001 --diffusivity 1 --descriptor 1 --upright 1 --nsublevels 4`
 Number of Keypoints Image 1: 1933
 Number of Keypoints Image 2: 2012
 KAZE Features Extraction Time (ms): 2274.36
@@ -217,8 +195,7 @@ Number of Outliers: 101
 Inliers Ratio: 92.6492
 
 
-Image Matching Comparison between KAZE, SIFT and SURF (OpenCV)
-------------------------------------------------------------------------------------------------------
+## Image Matching Comparison between KAZE, SIFT and SURF (OpenCV)
 
 The code contains one program to perform image matching between two images, showing a comparison between KAZE features, SIFT
 and SURF. All these implementations are based on the OpenCV library. 
