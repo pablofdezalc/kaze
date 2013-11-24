@@ -184,6 +184,8 @@ For example, with the default configuration parameters used in the current code 
 the following results:
 
 `./kaze_match ../../datasets/iguazu/img1.pgm ../../datasets/iguazu/img4.pgm ../../datasets/iguazu/H1to4p --dthreshold 0.001 --dthreshold2 0.001 --diffusivity 1 --descriptor 1 --upright 1 --nsublevels 4`
+
+```
 Number of Keypoints Image 1: 1933
 Number of Keypoints Image 2: 2012
 KAZE Features Extraction Time (ms): 2274.36
@@ -193,7 +195,7 @@ Number of Matches: 1374
 Number of Inliers: 1273
 Number of Outliers: 101
 Inliers Ratio: 92.6492
-
+```
 
 ## Image Matching Comparison between KAZE, SIFT and SURF (OpenCV)
 
@@ -209,6 +211,7 @@ For example, running kaze_compare with the first and third images from the boat 
 
 ./kaze_compare ../../datasets/boat/img1.pgm ../../datasets/boat/img3.pgm ../../datasets/boat/H1to3p --dthreshold 0.001 --dthreshold2 0.001 --diffusivity 1 --descriptor 1 --nsublevels 4
 
+```
 SIFT Results
 **************************************
 Number of Keypoints Image 1: 2000
@@ -238,6 +241,7 @@ Number of Inliers: 1851
 Number of Outliers: 135
 Inliers Ratio: 93.2024
 KAZE Features Extraction Time (ms): 2715.81
+```
 
 One of the interesting reasons why you should use KAZE features is because is open source and you can use that freely even in commercial applications, which is not the case
 of SIFT and SURF. In general, KAZE results are superior to the other OpenCV methods (in terms of number of inliers and ratio), while being more slower to compute.
@@ -252,8 +256,6 @@ If you use this code as part of your work, please cite the following paper:
 
 **Important**: If you work in a research institution, university, company or you are a freelance and you are using KAZE or A-KAZE in your work, please send me an email!!
 I would like to know the people that are using KAZE around the world!!"
-
-email: pablofdezalc@gmail.com
 
 In case you have any question, find any bug in the code or want to share some improvements,
 please contact me:
