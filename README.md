@@ -245,10 +245,18 @@ Future work will try to speed-up the process as much as possible while keeping g
 
 ## Citation
 If you use this code as part of your work, please cite the following paper:
+
 1. **KAZE Features**. Pablo F. Alcantarilla, Adrien Bartoli and Andrew J. Davison. _In European Conference on Computer Vision (ECCV), Fiorenze, Italy. October 2012_.
 
 ## Contact Info
+
+**Important**: If you work in a research institution, university, company or you are a freelance and you are using KAZE or A-KAZE in your work, please send me an email!!
+I would like to know the people that are using KAZE around the world!!"
+
+email: pablofdezalc@gmail.com
+
 In case you have any question, find any bug in the code or want to share some improvements,
 please contact me:
+
 Pablo F. Alcantarilla
 email: pablofdezalc@gmail.com
