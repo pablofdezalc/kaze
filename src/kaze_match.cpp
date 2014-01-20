@@ -158,18 +158,10 @@ int main( int argc, char *argv[] ) {
     cout << "Inliers Ratio: " << ratio << endl << endl;
 
     // Show the images in OpenCV windows
-    namedWindow("Image 1",CV_WINDOW_NORMAL);
-    namedWindow("Image 2",CV_WINDOW_NORMAL);
-    namedWindow("Matches",CV_WINDOW_NORMAL);
-
     imshow("Image 1",img1_rgb);
     imshow("Image 2",img2_rgb);
     imshow("Matches",img_com);
-
     waitKey(0);
-
-    // Destroy the windows
-    destroyAllWindows();
   }
 }
 
