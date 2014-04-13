@@ -1,4 +1,3 @@
-
 //=============================================================================
 //
 // kaze_match.cpp
@@ -21,25 +20,40 @@
  * @author Pablo F. Alcantarilla
  */
 
-#include "kaze_match.h"
+#include "KAZE.h"
 
-// Namespaces
 using namespace std;
-using namespace cv;
 
-//*************************************************************************************
-//*************************************************************************************
+/* ************************************************************************* */
+// Some image matching options
+const bool COMPUTE_HOMOGRAPHY = false;	// 0->Use ground truth homography, 1->Estimate homography with RANSAC
+const float MAX_H_ERROR = 5.0;	// Maximum error in pixels to accept an inlier
+const float DRATIO = .60;		// NNDR Matching value
 
+/* ************************************************************************* */
+/**
+ * @brief This function parses the command line arguments for setting KAZE parameters
+ * and image matching between two input images
+ * @param options Structure that contains KAZE settings
+ * @param img_path1 Name of the first input image
+ * @param img_path2 Name of the second input image
+ * @param homography_path Name of the file that contains a ground truth homography
+ */
+int parse_input_options(KAZEOptions& options, std::string& img_path1, std::string& img_path2,
+                        std::string& homography_path, int argc, char *argv[]);
+
+/* ************************************************************************* */
 /** Main Function 																	 */
 int main( int argc, char *argv[] ) {
 
   KAZEOptions options;
-  Mat img1, img1_32, img2, img2_32, img1_rgb, img2_rgb, img_com, img_r;
+  cv::Mat img1, img1_32, img2, img2_32, img1_rgb, img2_rgb, img_com, img_r;
+  cv::Mat desc1, desc2, H;
   string img_path1, img_path2, homography_path;
   float ratio = 0.0, rfactor = .90;
-  vector<KeyPoint> kpts1, kpts2;
-  vector<vector<DMatch> > dmatches;
-  Mat desc1, desc2, H;
+  vector<cv::KeyPoint> kpts1, kpts2;
+  vector<vector<cv::DMatch> > dmatches;
+
   int nkpts1 = 0, nkpts2 = 0, nmatches = 0, ninliers = 0, noutliers = 0;
 
   // Variables for measuring computation times
@@ -51,7 +65,7 @@ int main( int argc, char *argv[] ) {
   }
 
   // Read the image, force to be grey scale
-  img1 = imread(img_path1,0);
+  img1 = cv::imread(img_path1,0);
 
   if (img1.data == NULL) {
     cerr << "Error loading image: " << img_path1 << endl;
@@ -59,7 +73,7 @@ int main( int argc, char *argv[] ) {
   }
 
   // Read the image, force to be grey scale
-  img2 = imread(img_path2,0);
+  img2 = cv::imread(img_path2,0);
 
   if (img2.data == NULL) {
     cout << "Error loading image: " << img_path2 << endl;
@@ -71,10 +85,10 @@ int main( int argc, char *argv[] ) {
   img2.convertTo(img2_32,CV_32F,1.0/255.0,0);
 
   // Color images for results visualization
-  img1_rgb = Mat(Size(img1.cols,img1.rows),CV_8UC3);
-  img2_rgb = Mat(Size(img2.cols,img1.rows),CV_8UC3);
-  img_com = Mat(Size(img1.cols*2,img1.rows),CV_8UC3);
-  img_r = Mat(Size(img_com.cols*rfactor,img_com.rows*rfactor),CV_8UC3);
+  img1_rgb = cv::Mat(cv::Size(img1.cols,img1.rows),CV_8UC3);
+  img2_rgb = cv::Mat(cv::Size(img2.cols,img1.rows),CV_8UC3);
+  img_com = cv::Mat(cv::Size(img1.cols*2,img1.rows),CV_8UC3);
+  img_r = cv::Mat(cv::Size(img_com.cols*rfactor,img_com.rows*rfactor),CV_8UC3);
 
   // Read the homography file
   read_homography(homography_path,H);
@@ -84,7 +98,7 @@ int main( int argc, char *argv[] ) {
   options.img_height = img1.rows;
   KAZE evolution1(options);
 
-  t1 = getTickCount();
+  t1 = cv::getTickCount();
 
   // Create the nonlinear scale space
   // and perform feature detection and description for image 1
@@ -101,22 +115,22 @@ int main( int argc, char *argv[] ) {
   evolution2.Feature_Detection(kpts2);
   evolution2.Feature_Description(kpts2,desc2);
 
-  t2 = getTickCount();
-  tkaze = 1000.0*(t2-t1) / getTickFrequency();
+  t2 = cv::getTickCount();
+  tkaze = 1000.0*(t2-t1) / cv::getTickFrequency();
 
   nkpts1 = kpts1.size();
   nkpts2 = kpts2.size();
 
   // Matching Descriptors!!
-  vector<Point2f> matches, inliers;
-  Ptr<DescriptorMatcher> matcher_l2 = DescriptorMatcher::create("BruteForce");
+  vector<cv::Point2f> matches, inliers;
+  cv::Ptr<cv::DescriptorMatcher> matcher_l2 = cv::DescriptorMatcher::create("BruteForce");
 
-  t1 = getTickCount();
+  t1 = cv::getTickCount();
 
   matcher_l2->knnMatch(desc1,desc2,dmatches,2);
   matches2points_nndr(kpts1,kpts2,dmatches,matches,DRATIO);
 
-  t2 = getTickCount();
+  t2 = cv::getTickCount();
   tmatch = 1000.0*(t2-t1) / cv::getTickFrequency();
 
   // Compute Inliers!!
@@ -143,11 +157,10 @@ int main( int argc, char *argv[] ) {
 
   // Create the new image with a line showing the correspondences
   draw_inliers(img1_rgb,img2_rgb,img_com,inliers);
-  resize(img_com,img_r,Size(img_r.cols,img_r.rows),0,0,CV_INTER_LINEAR);
+  resize(img_com,img_r,cv::Size(img_r.cols,img_r.rows),0,0,CV_INTER_LINEAR);
 
   // Show matching statistics
   if (options.show_results == true) {
-
     cout << "Number of Keypoints Image 1: " << nkpts1 << endl;
     cout << "Number of Keypoints Image 2: " << nkpts2 << endl;
     cout << "KAZE Features Extraction Time (ms): " << tkaze << endl;
@@ -158,36 +171,14 @@ int main( int argc, char *argv[] ) {
     cout << "Inliers Ratio: " << ratio << endl << endl;
 
     // Show the images in OpenCV windows
-    imshow("Image 1",img1_rgb);
-    imshow("Image 2",img2_rgb);
-    imshow("Matches",img_com);
-    waitKey(0);
+    cv::imshow("Image 1",img1_rgb);
+    cv::imshow("Image 2",img2_rgb);
+    cv::imshow("Matches",img_com);
+    cv::waitKey(0);
   }
 }
 
-//*************************************************************************************
-//*************************************************************************************
-
-/**
- * @brief  This function saves the input image with the correct matches
- * @param img Image to be saved
- */
-void save_matching_image(const cv::Mat& img) {
-  string outputFile = "./image_matching.jpg";
-  imwrite(outputFile,img);
-}
-
-//*************************************************************************************
-//*************************************************************************************
-
-/**
- * @brief This function parses the command line arguments for setting KAZE parameters
- * and image matching between two input images
- * @param options Structure that contains KAZE settings
- * @param img_path1 Name of the first input image
- * @param img_path2 Name of the second input image
- * @param homography_path Name of the file that contains a ground truth homography
- */
+/* ************************************************************************* */
 int parse_input_options(KAZEOptions& options, std::string& img_path1, std::string& img_path2,
                         std::string& homography_path, int argc, char *argv[]) {
 
@@ -266,10 +257,7 @@ int parse_input_options(KAZEOptions& options, std::string& img_path1, std::strin
           return -1;
         }
         else {
-          options.diffusivity = atoi(argv[i]);
-          if (options.diffusivity > 2 || options.diffusivity < 0) {
-            options.diffusivity = DEFAULT_DIFFUSIVITY_TYPE;
-          }
+          options.diffusivity = DIFFUSIVITY_TYPE(atoi(argv[i]));
         }
       }
       else if (!strcmp(argv[i],"--descriptor")) {

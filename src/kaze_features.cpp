@@ -1,4 +1,3 @@
-
 //=============================================================================
 //
 // kaze_features.cpp
@@ -21,28 +20,34 @@
  * @author Pablo F. Alcantarilla
  */
 
-#include "kaze_features.h"
+#include "KAZE.h"
 
 using namespace std;
-using namespace cv;
 
-//*************************************************************************************
-//*************************************************************************************
+/* ************************************************************************* */
+/**
+ * @brief This function parses the command line arguments for setting KAZE parameters
+ * @param options Structure that contains KAZE settings
+ * @param img_path Path for the input image
+ * @param kpts_path Path for the file where the keypoints where be stored
+ */
+int parse_input_options(KAZEOptions& options, std::string& img_path,
+                        std::string& kpts_path, int argc, char* argv[]);
 
+/* ************************************************************************* */
 /** Main Function 																	 */
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
 
   KAZEOptions options;
-  Mat img, img_32, img_rgb;
+  cv::Mat img, img_32, img_rgb;
   string img_path, kpts_path;
 
   // Parse the input command line options
-  if (parse_input_options(options,img_path,kpts_path,argc,argv)) {
+  if (parse_input_options(options,img_path,kpts_path,argc,argv))
     return -1;
-  }
 
   // Read the image, force to be grey scale
-  img = imread(img_path,0);
+  img = cv::imread(img_path,0);
 
   if (img.data == NULL) {
     cerr << "Error loading image: " << img_path << endl;
@@ -51,7 +56,7 @@ int main(int argc, char *argv[]) {
 
   // Convert the image to float
   img.convertTo(img_32,CV_32F,1.0/255.0,0);
-  img_rgb = Mat(Size(img.cols,img.rows),CV_8UC3);
+  img_rgb = cv::Mat(cv::Size(img.cols,img.rows),CV_8UC3);
 
   options.img_width = img.cols;
   options.img_height = img.rows;
@@ -62,8 +67,8 @@ int main(int argc, char *argv[]) {
   // Create the nonlinear scale space
   evolution.Create_Nonlinear_Scale_Space(img_32);
 
-  vector<KeyPoint> kpts;
-  Mat desc;
+  vector<cv::KeyPoint> kpts;
+  cv::Mat desc;
 
   evolution.Feature_Detection(kpts);
   evolution.Feature_Description(kpts,desc);
@@ -75,65 +80,31 @@ int main(int argc, char *argv[]) {
   }
 
   if (options.show_results == true) {
-    cout << "Time Scale Space: " << evolution.Get_Time_NLScale() << endl;
-    cout << "Time Detector: " << evolution.Get_Time_Detector() << endl;
-    cout << "Time Descriptor: " << evolution.Get_Time_Descriptor() << endl;
+    KAZETiming timing = evolution.Get_Computation_Times();
+    cout << "Time Scale Space: " << timing.scale << endl;
+    cout << "Time Detector: " << timing.detector << endl;
+    cout << "Time Descriptor: " << timing.descriptor << endl;
     cout << "Number of Keypoints: " << kpts.size() << endl;
 
     // Create the OpenCV window
-    namedWindow("Image",CV_WINDOW_FREERATIO);
+    cv::namedWindow("Image",CV_WINDOW_FREERATIO);
 
     // Copy the input image to the color one
-    cvtColor(img,img_rgb,CV_GRAY2BGR);
+    cv::cvtColor(img,img_rgb,CV_GRAY2BGR);
 
     // Draw the list of detected points
     draw_keypoints(img_rgb,kpts);
 
-    imshow("Image",img_rgb);
-    waitKey(0);
-
-    // Destroy the windows
-    destroyAllWindows();
-
-    if (options.save_scale_space == true) {
-      // Copy the input image to the color one
-      cvtColor(img,img_rgb,CV_GRAY2BGR);
-
-      // Draw the list of detected points
-      draw_keypoints(img_rgb,kpts);
-
-      // Save the rgb image
-      save_image_with_features(img_rgb);
-    }
+    cv::imshow("Image", img_rgb);
+    cv::waitKey(0);
   }
 
   // Save the list of keypoints
-  if (options.save_keypoints == true) {
+  if (options.save_keypoints == true)
     save_keypoints(kpts_path,kpts,desc,false);
-  }
 }
 
-//*************************************************************************************
-//*************************************************************************************
-
-/**
- * @brief  This function saves the input image with the detected features
- * @param img Image to be saved
- */
-void save_image_with_features(cv::Mat& img) {
-  string outputFile = "./image_features.jpg";
-  imwrite(outputFile,img);
-}
-
-//*************************************************************************************
-//*************************************************************************************
-
-/**
- * @brief This function parses the command line arguments for setting KAZE parameters
- * @param options Structure that contains KAZE settings
- * @param img_path Path for the input image
- * @param kpts_path Path for the file where the keypoints where be stored
- */
+/* ************************************************************************* */
 int parse_input_options(KAZEOptions& options, std::string& img_path,
                         std::string& kpts_path, int argc, char *argv[]) {
 
@@ -210,10 +181,7 @@ int parse_input_options(KAZEOptions& options, std::string& img_path,
           return -1;
         }
         else {
-          options.diffusivity = atoi(argv[i]);
-          if (options.diffusivity > 2 || options.diffusivity < 0) {
-            options.diffusivity = DEFAULT_DIFFUSIVITY_TYPE;
-          }
+          options.diffusivity = DIFFUSIVITY_TYPE(atoi(argv[i]));
         }
       }
       else if (!strcmp(argv[i],"--descriptor")) {
