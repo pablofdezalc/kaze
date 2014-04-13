@@ -1,41 +1,29 @@
 
 /**
- * @file config.h
- * @brief Configuration file
- * @date Dec 27, 2011
+ * @file KAZEConfig.h
+ * @brief KAZE configuration file
+ * @date Apr 13, 2014
  * @author Pablo F. Alcantarilla
  */
 
-#ifndef _CONFIG_H_
-#define _CONFIG_H_
+#pragma once
 
-//******************************************************************************
-//******************************************************************************
+/* ************************************************************************* */
+// OpenCV
+#include <opencv2/opencv.hpp>
+#include <opencv2/features2d/features2d.hpp>
 
-// System Includes
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <cstdlib>
-#include <string>
-#include <vector>
-#include <math.h>
-
-// OpenCV Includes
-#include <cv.h>
-#include <highgui.h>
-#include <cvaux.h>
-
-// OpenMP Includes
+// OpenMP
 #ifdef _OPENMP
-#include <omp.h>
-#else
-#define omp_get_thread_num() 0
+# include <omp.h>
 #endif
 
-//*************************************************************************************
-//*************************************************************************************
+// System Includes
+#include <string>
+#include <vector>
+#include <cmath>
 
+/* ************************************************************************* */
 // Some defines
 #define NMAX_CHAR 400
 
@@ -120,12 +108,6 @@ struct TEvolution {
   float sublevel;	// Image sublevel in each octave
   int sigma_size;	// Integer esigma. For computing the feature detector responses
 };
-
-//*************************************************************************************
-//*************************************************************************************
-
-#endif
-
 
 
 

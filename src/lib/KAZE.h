@@ -7,21 +7,15 @@
  * @author Pablo F. Alcantarilla
  */
 
-#ifndef KAZE_H_
-#define KAZE_H_
+#pragma once
 
-//*************************************************************************************
-//*************************************************************************************
-
-// Includes
-#include "config.h"
+/* ************************************************************************* */
+#include "KAZEConfig.h"
 #include "nldiffusion_functions.h"
 #include "fed.h"
 #include "utils.h"
 
-//*************************************************************************************
-//*************************************************************************************
-
+/* ************************************************************************* */
 // KAZE Class Declaration
 class KAZE {
 
@@ -193,67 +187,67 @@ public:
   }
 
   // Getters
-  float Get_Scale_Offset(void) {
+  float Get_Scale_Offset() const {
     return soffset_;
   }
 
-  float Get_SDerivatives(void) {
+  float Get_SDerivatives() const {
     return sderivatives_;
   }
 
-  int Get_Octave_Max(void) {
+  int Get_Octave_Max() const {
     return omax_;
   }
 
-  int Get_NSublevels(void) {
+  int Get_NSublevels() const {
     return nsublevels_;
   }
 
-  bool Get_Save_Scale_Space_Flag(void) {
+  bool Get_Save_Scale_Space_Flag() const {
     return save_scale_space_;
   }
 
-  int Get_Image_Width(void) {
+  int Get_Image_Width() const {
     return img_width_;
   }
 
-  int Get_Image_Height(void) {
+  int Get_Image_Height() const {
     return img_height_;
   }
 
-  bool Get_Verbosity_Level(void) {
+  bool Get_Verbosity_Level() const {
     return verbosity_;
   }
 
-  float Get_KContrast(void) {
+  float Get_KContrast() const {
     return kcontrast_;
   }
 
-  float Get_Detector_Threshold(void) {
+  float Get_Detector_Threshold() const {
     return dthreshold_;
   }
 
-  int Get_Diffusivity_Type(void) {
+  int Get_Diffusivity_Type() const {
     return diffusivity_;
   }
 
-  int Get_Descriptor_Mode(void) {
+  int Get_Descriptor_Mode() const {
     return descriptor_mode_;
   }
 
-  bool Get_Upright(void) {
+  bool Get_Upright() const {
     return use_upright_;
   }
 
-  bool Get_Extended(void) {
+  bool Get_Extended() const {
     return use_extended_;
   }
 
-  float Get_Time_KContrast(void) {
+  float Get_Time_KContrast() const {
     return tkcontrast_;
   }
 
-  float Get_Time_NLScale(void) {
+  float Get_Time_NLScale() const {
     return tnlscale_;
   }
 
@@ -278,9 +272,7 @@ public:
   }
 };
 
-//*************************************************************************************
-//*************************************************************************************
-
+/* ************************************************************************* */
 // Inline functions
 float getAngle(const float& x, const float& y);
 float gaussian(const float& x, const float& y, const float& sig);
@@ -288,7 +280,3 @@ void checkDescriptorLimits(int &x, int &y, const int& width, const int& height);
 void clippingDescriptor(float *desc, const int& dsize, const int& niter, const float& ratio);
 int fRound(const float& flt);
 
-//*************************************************************************************
-//*************************************************************************************
-
-#endif // KAZE_H_
