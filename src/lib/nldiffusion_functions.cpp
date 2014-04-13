@@ -1,4 +1,3 @@
-
 //=============================================================================
 //
 // nldiffusion_functions.cpp
@@ -29,9 +28,7 @@
 using namespace std;
 using namespace cv;
 
-//*************************************************************************************
-//*************************************************************************************
-
+/* ************************************************************************* */
 /**
  * @brief This function smoothes an image with a Gaussian kernel
  * @param src Input image
@@ -64,9 +61,7 @@ void gaussian_2D_convolution(const cv::Mat& src, cv::Mat& dst,
   GaussianBlur(src,dst,Size(ksize_x_,ksize_y_),sigma,sigma,cv::BORDER_REPLICATE);
 }
 
-//*************************************************************************************
-//*************************************************************************************
-
+/* ************************************************************************* */
 /**
  * @brief This function computes the Perona and Malik conductivity coefficient g1
  * g1 = exp(-|dL|^2/k^2)
@@ -79,9 +74,7 @@ void pm_g1(const cv::Mat& Lx, const cv::Mat& Ly, cv::Mat& dst, float k) {
   cv::exp(-(Lx.mul(Lx) + Ly.mul(Ly))/(k*k),dst);
 }
 
-//*************************************************************************************
-//*************************************************************************************
-
+/* ************************************************************************* */
 /**
  * @brief This function computes the Perona and Malik conductivity coefficient g2
  * g2 = 1 / (1 + dL^2 / k^2)
@@ -94,9 +87,7 @@ void pm_g2(const cv::Mat &Lx, const cv::Mat& Ly, cv::Mat& dst, float k) {
   dst = 1./(1. + (Lx.mul(Lx) + Ly.mul(Ly))/(k*k));
 }
 
-//*************************************************************************************
-//*************************************************************************************
-
+/* ************************************************************************* */
 /**
  * @brief This function computes Weickert conductivity coefficient g3
  * @param Lx First order image derivative in X-direction (horizontal)
@@ -114,9 +105,25 @@ void weickert_diffusivity(const cv::Mat& Lx, const cv::Mat& Ly, cv::Mat& dst, fl
   dst = 1.0 - dst;
 }
 
-//*************************************************************************************
-//*************************************************************************************
+/* ************************************************************************* */
+/**
+ * @brief This function computes Charbonnier conductivity coefficient gc
+ * gc = 1 / sqrt(1 + dL^2 / k^2)
+ * @param Lx First order image derivative in X-direction (horizontal)
+ * @param Ly First order image derivative in Y-direction (vertical)
+ * @param dst Output image
+ * @param k Contrast factor parameter
+ * @note For more information check the following paper: J. Weickert
+ * Applications of nonlinear diffusion in image processing and computer vision,
+ * Proceedings of Algorithmy 2000
+ */
+void charbonnier_diffusivity(const cv::Mat& Lx, const cv::Mat& Ly, cv::Mat& dst, float k) {
+  cv::Mat den;
+  cv::sqrt(1.0+(Lx.mul(Lx)+Ly.mul(Ly))/(k*k),den);
+  dst = 1.0/ den;
+}
 
+/* ************************************************************************* */
 /**
  * @brief This function computes a good empirical value for the k contrast factor
  * given an input image, the percentile (0-1), the gradient scale and the number of
@@ -138,7 +145,7 @@ float compute_k_percentile(const cv::Mat& img, float perc, float gscale,
   float hmax = 0.0;
 
   // Create the array for the histogram
-  float *hist = new float[nbins];
+  std::vector<float> hist(nbins);
 
   // Create the matrices
   Mat gaussian = Mat::zeros(img.rows,img.cols,CV_32F);
@@ -207,13 +214,10 @@ float compute_k_percentile(const cv::Mat& img, float perc, float gscale,
     kperc = hmax*((float)(k)/(float)nbins);
   }
 
-  delete hist;
   return kperc;
 }
 
-//*************************************************************************************
-//*************************************************************************************
-
+/* ************************************************************************* */
 /**
  * @brief This function computes Scharr image derivatives
  * @param src Input image
@@ -229,9 +233,7 @@ void compute_scharr_derivatives(const cv::Mat& src, cv::Mat& dst,
   sepFilter2D(src,dst,CV_32F,kx,ky);
 }
 
-//*************************************************************************************
-//*************************************************************************************
-
+/* ************************************************************************* */
 /**
  * @brief Compute derivative kernels for sizes different than 3
  * @param _kx Horizontal kernel values
@@ -262,7 +264,7 @@ void compute_derivative_kernels(cv::OutputArray _kx, cv::OutputArray _ky,
   for (int k = 0; k < 2; k++) {
     Mat* kernel = k == 0 ? &kx : &ky;
     int order = k == 0 ? dx : dy;
-    float kerI[ksize];
+    std::vector<float> kerI(ksize);
 
     for (int t=0; t<ksize; t++) {
       kerI[t] = 0;
@@ -280,9 +282,7 @@ void compute_derivative_kernels(cv::OutputArray _kx, cv::OutputArray _ky,
   }
 }
 
-//*************************************************************************************
-//*************************************************************************************
-
+/* ************************************************************************* */
 /**
  * @brief This function performs a scalar non-linear diffusion step
  * @param Ld2 Output image in the evolution
@@ -343,9 +343,7 @@ void nld_step_scalar(cv::Mat& Ld, const cv::Mat& c, cv::Mat& Lstep, float stepsi
   Ld = Ld + Lstep;
 }
 
-//*************************************************************************************
-//*************************************************************************************
-
+/* ************************************************************************* */
 /**
  * @brief This function checks if a given pixel is a maximum in a local neighbourhood
  * @param img Input image where we will perform the maximum search
