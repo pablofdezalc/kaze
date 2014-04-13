@@ -16,13 +16,38 @@
 #include "utils.h"
 
 /* ************************************************************************* */
-// KAZE Class Declaration
+/// KAZE Timing structure
+struct KAZETiming {
+
+  KAZETiming() {
+    kcontrast = 0.0;
+    scale = 0.0;
+    derivatives = 0.0;
+    detector = 0.0;
+    extrema = 0.0;
+    subpixel = 0.0;
+    descriptor = 0.0;
+  }
+
+  double kcontrast;       ///< Contrast factor computation time in ms
+  double scale;           ///< Nonlinear scale space computation time in ms
+  double derivatives;     ///< Multiscale derivatives computation time in ms
+  double detector;        ///< Feature detector computation time in ms
+  double extrema;         ///< Scale space extrema computation time in ms
+  double subpixel;        ///< Subpixel refinement computation time in ms
+  double descriptor;      ///< Descriptors computation time in ms
+};
+
+/* ************************************************************************* */
+/// KAZE Class Declaration
 class KAZE {
 
 private:
 
-  // Parameters of the Nonlinear diffusion class
-  float soffset_;	// Base scale offset
+  KAZEOptions options_;                ///< Configuration options for AKAZE
+
+  /// Parameters of the Nonlinear diffusion class
+  float soffset_;         ///< Base scale offset
   float sderivatives_; // Standard deviation of the Gaussian for the nonlinear diff. derivatives
   int omax_;		// Maximum octave level
   int nsublevels_;	// Number of sublevels per octave level
@@ -39,42 +64,36 @@ private:
   bool use_upright_;	// Set to true in case we want to use the upright version of the descriptors
   bool use_extended_;	// Set to true in case we want to use the extended version of the descriptors
 
-  // Vector of keypoint vectors for finding extrema in multiple threads
+  /// Vector of keypoint vectors for finding extrema in multiple threads
   std::vector<std::vector<cv::KeyPoint> > kpts_par_;
 
-  // FED parameters
-  int ncycles_;                  // Number of cycles
-  bool reordering_;              // Flag for reordering time steps
-  std::vector<std::vector<float > > tsteps_;  // Vector of FED dynamic time steps
-  std::vector<int> nsteps_;      // Vector of number of steps per cycle
-
-  // Computation times variables in ms
-  double tkcontrast_;       // Kcontrast factor computation
-  double tnlscale_;         // Nonlinear Scale space generation
-  double tdetector_;        // Feature detector
-  double tmderivatives_;    // Multiscale derivatives computation
-  double tdresponse_;       // Detector response computation
-  double tdescriptor_;      // Feature descriptor
-  double tsubpixel_;        // Subpixel refinement
+  /// FED parameters
+  int ncycles_;                  ///< Number of cycles
+  bool reordering_;              ///< Flag for reordering time steps
+  std::vector<std::vector<float > > tsteps_;  ///< Vector of FED dynamic time steps
+  std::vector<int> nsteps_;      ///< Vector of number of steps per cycle
 
   // Some auxiliary variables used in the AOS step
   cv::Mat Ltx_, Lty_, px_, py_, ax_, ay_, bx_, by_, qr_, qc_;
 
+  /// Computation times variables in ms
+  KAZETiming timing_;
+
 public:
 
-  // Constructor
+  /// Constructor
   KAZE(KAZEOptions& options);
 
-  // Destructor
+  /// Destructor
   ~KAZE(void);
 
-  // Public methods for KAZE interface
+  /// Public methods for KAZE interface
   void Allocate_Memory_Evolution(void);
   int Create_Nonlinear_Scale_Space(const cv::Mat& img);
   void Feature_Detection(std::vector<cv::KeyPoint>& kpts);
   void Feature_Description(std::vector<cv::KeyPoint>& kpts, cv::Mat& desc);
 
-  // Methods for saving the scale space set of images and detector responses
+  /// Methods for saving the scale space set of images and detector responses
   void Save_Nonlinear_Scale_Space(void);
   void Save_Detector_Responses(void);
   void Save_Flow_Responses(void);
@@ -243,37 +262,14 @@ public:
     return use_extended_;
   }
 
-  float Get_Time_KContrast() const {
-    return tkcontrast_;
-  }
-
-  float Get_Time_NLScale() const {
-    return tnlscale_;
-  }
-
-  float Get_Time_Detector(void) {
-    return tdetector_;
-  }
-
-  float Get_Time_Multiscale_Derivatives(void) {
-    return tmderivatives_;
-  }
-
-  float Get_Time_Detector_Response(void) {
-    return tdresponse_;
-  }
-
-  float Get_Time_Descriptor(void) {
-    return tdescriptor_;
-  }
-
-  float Get_Time_Subpixel(void) {
-    return tsubpixel_;
+  /// Return the computation times
+  KAZETiming Get_Computation_Times() const {
+    return timing_;
   }
 };
 
 /* ************************************************************************* */
-// Inline functions
+/// Inline functions
 float getAngle(const float& x, const float& y);
 float gaussian(const float& x, const float& y, const float& sig);
 void checkDescriptorLimits(int &x, int &y, const int& width, const int& height);
