@@ -60,9 +60,8 @@ int main( int argc, char *argv[] ) {
   double t1 = 0.0, t2 = 0.0, tkaze = 0.0, tmatch = 0.0;
 
   // Parse the input command line options
-  if (parse_input_options(options,img_path1,img_path2,homography_path,argc,argv)) {
+  if (parse_input_options(options,img_path1,img_path2,homography_path,argc,argv))
     return -1;
-  }
 
   // Read the image, force to be grey scale
   img1 = cv::imread(img_path1,0);
@@ -96,6 +95,8 @@ int main( int argc, char *argv[] ) {
   // Create the first KAZE object
   options.img_width = img1.cols;
   options.img_height = img1.rows;
+
+  cout << "width: " << options.img_width << " height: "  << options.img_height << endl;
   KAZE evolution1(options);
 
   t1 = cv::getTickCount();
@@ -160,22 +161,21 @@ int main( int argc, char *argv[] ) {
   resize(img_com,img_r,cv::Size(img_r.cols,img_r.rows),0,0,CV_INTER_LINEAR);
 
   // Show matching statistics
-  if (options.show_results == true) {
-    cout << "Number of Keypoints Image 1: " << nkpts1 << endl;
-    cout << "Number of Keypoints Image 2: " << nkpts2 << endl;
-    cout << "KAZE Features Extraction Time (ms): " << tkaze << endl;
-    cout << "Matching Descriptors Time (ms): " << tmatch << endl;
-    cout << "Number of Matches: " << nmatches << endl;
-    cout << "Number of Inliers: " << ninliers << endl;
-    cout << "Number of Outliers: " << noutliers << endl;
-    cout << "Inliers Ratio: " << ratio << endl << endl;
+  cout << "Number of Keypoints Image 1: " << nkpts1 << endl;
+  cout << "Number of Keypoints Image 2: " << nkpts2 << endl;
+  cout << "KAZE Features Extraction Time (ms): " << tkaze << endl;
+  cout << "Matching Descriptors Time (ms): " << tmatch << endl;
+  cout << "Number of Matches: " << nmatches << endl;
+  cout << "Number of Inliers: " << ninliers << endl;
+  cout << "Number of Outliers: " << noutliers << endl;
+  cout << "Inliers Ratio: " << ratio << endl << endl;
 
-    // Show the images in OpenCV windows
-    cv::imshow("Image 1",img1_rgb);
-    cv::imshow("Image 2",img2_rgb);
-    cv::imshow("Matches",img_com);
-    cv::waitKey(0);
-  }
+  // Show the images in OpenCV windows
+  cv::imshow("Image 1",img1_rgb);
+  cv::imshow("Image 2",img2_rgb);
+  cv::imshow("Matches",img_com);
+  cv::waitKey(0);
+
 }
 
 /* ************************************************************************* */
@@ -267,10 +267,9 @@ int parse_input_options(KAZEOptions& options, std::string& img_path1, std::strin
           return -1;
         }
         else {
-          options.descriptor = atoi(argv[i]);
-
-          if (options.descriptor > 2 || options.descriptor < 0) {
-            options.descriptor = DEFAULT_DESCRIPTOR_MODE;
+          options.descriptor = DESCRIPTOR_TYPE(atoi(argv[i]));
+          if (options.descriptor > GSURF_EXTENDED || options.descriptor < SURF_UPRIGHT) {
+            options.descriptor = MSURF;
           }
         }
       }
@@ -284,16 +283,6 @@ int parse_input_options(KAZEOptions& options, std::string& img_path1, std::strin
           options.save_scale_space = (bool)atoi(argv[i]);
         }
       }
-      else if (!strcmp(argv[i],"--show_results")) {
-        i = i+1;
-        if (i >= argc) {
-          cout << "Error introducing input options!!" << endl;
-          return -1;
-        }
-        else {
-          options.show_results = (bool)atoi(argv[i]);
-        }
-      }
       else if (!strcmp(argv[i],"--use_fed")) {
         i = i+1;
         if (i >= argc) {
@@ -302,26 +291,6 @@ int parse_input_options(KAZEOptions& options, std::string& img_path1, std::strin
         }
         else {
           options.use_fed = (bool)atoi(argv[i]);
-        }
-      }
-      else if (!strcmp(argv[i],"--upright")) {
-        i = i+1;
-        if (i >= argc) {
-          cout << "Error introducing input options!!" << endl;
-          return -1;
-        }
-        else {
-          options.upright = (bool)atoi(argv[i]);
-        }
-      }
-      else if (!strcmp(argv[i],"--extended")) {
-        i = i+1;
-        if (i >= argc) {
-          cout << "Error introducing input options!!" << endl;
-          return -1;
-        }
-        else {
-          options.extended = (bool)atoi(argv[i]);
         }
       }
       else if (!strcmp(argv[i],"--verbose")) {

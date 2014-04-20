@@ -32,23 +32,8 @@ using namespace cv;
  * @param options KAZE configuration options
  * @note The constructor allocates memory for the nonlinear scale space
 */
-KAZE::KAZE(KAZEOptions& options) {
+KAZE::KAZE(KAZEOptions& options) : options_(options) {
 
-  soffset_ = options.soffset;
-  sderivatives_ = options.sderivatives;
-  omax_ = options.omax;
-  nsublevels_ = options.nsublevels;
-  save_scale_space_ = options.save_scale_space;
-  verbosity_ = options.verbosity;
-  img_width_ = options.img_width;
-  img_height_ = options.img_height;
-  dthreshold_ = options.dthreshold;
-  diffusivity_ = options.diffusivity;
-  descriptor_mode_ = options.descriptor;
-  use_fed_ = options.use_fed;
-  use_upright_ = options.upright;
-  use_extended_ = options.extended;
-  kcontrast_ = DEFAULT_KCONTRAST;
   ncycles_ = 0;
   reordering_ = true;
 
@@ -72,21 +57,21 @@ KAZE::~KAZE(void) {
 void KAZE::Allocate_Memory_Evolution(void) {
 
   // Allocate the dimension of the matrices for the evolution
-  for (int i = 0; i <= omax_-1; i++) {
-    for (int j = 0; j <= nsublevels_-1; j++) {
+  for (int i = 0; i <= options_.omax-1; i++) {
+    for (int j = 0; j <= options_.nsublevels-1; j++) {
 
       TEvolution aux;
-      aux.Lx  = cv::Mat::zeros(img_height_,img_width_,CV_32F);
-      aux.Ly  = cv::Mat::zeros(img_height_,img_width_,CV_32F);
-      aux.Lxx = cv::Mat::zeros(img_height_,img_width_,CV_32F);
-      aux.Lxy = cv::Mat::zeros(img_height_,img_width_,CV_32F);
-      aux.Lyy = cv::Mat::zeros(img_height_,img_width_,CV_32F);
-      aux.Lflow = cv::Mat::zeros(img_height_,img_width_,CV_32F);
-      aux.Lt  = cv::Mat::zeros(img_height_,img_width_,CV_32F);
-      aux.Lsmooth = cv::Mat::zeros(img_height_,img_width_,CV_32F);
-      aux.Lstep = cv::Mat::zeros(img_height_,img_width_,CV_32F);
-      aux.Ldet = cv::Mat::zeros(img_height_,img_width_,CV_32F);
-      aux.esigma = soffset_*pow((float)2.0,(float)(j)/(float)(nsublevels_) + i);
+      aux.Lx  = cv::Mat::zeros(options_.img_height,options_.img_width,CV_32F);
+      aux.Ly  = cv::Mat::zeros(options_.img_height,options_.img_width,CV_32F);
+      aux.Lxx = cv::Mat::zeros(options_.img_height,options_.img_width,CV_32F);
+      aux.Lxy = cv::Mat::zeros(options_.img_height,options_.img_width,CV_32F);
+      aux.Lyy = cv::Mat::zeros(options_.img_height,options_.img_width,CV_32F);
+      aux.Lflow = cv::Mat::zeros(options_.img_height,options_.img_width,CV_32F);
+      aux.Lt  = cv::Mat::zeros(options_.img_height,options_.img_width,CV_32F);
+      aux.Lsmooth = cv::Mat::zeros(options_.img_height,options_.img_width,CV_32F);
+      aux.Lstep = cv::Mat::zeros(options_.img_height,options_.img_width,CV_32F);
+      aux.Ldet = cv::Mat::zeros(options_.img_height,options_.img_width,CV_32F);
+      aux.esigma = options_.soffset*pow((float)2.0,(float)(j)/(float)(options_.nsublevels) + i);
       aux.etime = 0.5*(aux.esigma*aux.esigma);
       aux.sigma_size = fRound(aux.esigma);
       aux.octave = i;
@@ -96,7 +81,7 @@ void KAZE::Allocate_Memory_Evolution(void) {
   }
 
   // Allocate memory for the FED number of cycles and time steps
-  if (use_fed_) {
+  if (options_.use_fed) {
     for (size_t i = 1; i < evolution_.size(); i++) {
       int naux = 0;
       vector<float> tau;
@@ -110,16 +95,16 @@ void KAZE::Allocate_Memory_Evolution(void) {
   }
   else {
     // Allocate memory for the auxiliary variables that are used in the AOS scheme
-    Ltx_ = cv::Mat::zeros(img_width_,img_height_,CV_32F);
-    Lty_ = cv::Mat::zeros(img_height_,img_width_,CV_32F);
-    px_ = cv::Mat::zeros(img_height_,img_width_,CV_32F);
-    py_ = cv::Mat::zeros(img_height_,img_width_,CV_32F);
-    ax_ = cv::Mat::zeros(img_height_,img_width_,CV_32F);
-    ay_ = cv::Mat::zeros(img_height_,img_width_,CV_32F);
-    bx_ = cv::Mat::zeros(img_height_-1,img_width_,CV_32F);
-    by_ = cv::Mat::zeros(img_height_-1,img_width_,CV_32F);
-    qr_ = cv::Mat::zeros(img_height_-1,img_width_,CV_32F);
-    qc_ = cv::Mat::zeros(img_height_,img_width_-1,CV_32F);
+    Ltx_ = cv::Mat::zeros(options_.img_height,options_.img_width,CV_32F);
+    Lty_ = cv::Mat::zeros(options_.img_height,options_.img_width,CV_32F);
+    px_ = cv::Mat::zeros(options_.img_height,options_.img_width,CV_32F);
+    py_ = cv::Mat::zeros(options_.img_height,options_.img_width,CV_32F);
+    ax_ = cv::Mat::zeros(options_.img_height,options_.img_width,CV_32F);
+    ay_ = cv::Mat::zeros(options_.img_height,options_.img_width,CV_32F);
+    bx_ = cv::Mat::zeros(options_.img_height-1,options_.img_width,CV_32F);
+    by_ = cv::Mat::zeros(options_.img_height-1,options_.img_width,CV_32F);
+    qr_ = cv::Mat::zeros(options_.img_height-1,options_.img_width,CV_32F);
+    qc_ = cv::Mat::zeros(options_.img_height,options_.img_width-1,CV_32F);
   }
 
 }
@@ -144,16 +129,16 @@ int KAZE::Create_Nonlinear_Scale_Space(const cv::Mat& img) {
 
   // Copy the original image to the first level of the evolution
   img.copyTo(evolution_[0].Lt);
-  gaussian_2D_convolution(evolution_[0].Lt,evolution_[0].Lt,0,0,soffset_);
-  gaussian_2D_convolution(evolution_[0].Lt,evolution_[0].Lsmooth,0,0,sderivatives_);
+  gaussian_2D_convolution(evolution_[0].Lt,evolution_[0].Lt,0,0,options_.soffset);
+  gaussian_2D_convolution(evolution_[0].Lt,evolution_[0].Lsmooth,0,0,options_.sderivatives);
 
   // Firstly compute the kcontrast factor
-  Compute_KContrast(evolution_[0].Lt,KCONTRAST_PERCENTILE);
+  Compute_KContrast(evolution_[0].Lt);
 
   t2 = getTickCount();
   timing_.kcontrast = 1000.0*(t2-t1) / getTickFrequency();
 
-  if (verbosity_ == true) {
+  if (options_.verbosity == true) {
     cout << "Computed image evolution step. Evolution time: " << evolution_[0].etime <<
             " Sigma: " << evolution_[0].esigma << endl;
   }
@@ -162,7 +147,7 @@ int KAZE::Create_Nonlinear_Scale_Space(const cv::Mat& img) {
   for ( size_t i = 1; i < evolution_.size(); i++) {
 
     evolution_[i-1].Lt.copyTo(evolution_[i].Lt);
-    gaussian_2D_convolution(evolution_[i-1].Lt,evolution_[i].Lsmooth,0,0,sderivatives_);
+    gaussian_2D_convolution(evolution_[i-1].Lt,evolution_[i].Lsmooth,0,0,options_.sderivatives);
 
     // Compute the Gaussian derivatives Lx and Ly
     Scharr(evolution_[i].Lsmooth,evolution_[i].Lx,CV_32F,1,0,1,0,BORDER_DEFAULT);
@@ -187,7 +172,7 @@ int KAZE::Create_Nonlinear_Scale_Space(const cv::Mat& img) {
     }
 
     // Perform FED n inner steps
-    if (use_fed_) {
+    if (options_.use_fed) {
       for (int j = 0; j < nsteps_[i-1]; j++) {
         nld_step_scalar(evolution_[i].Lt,evolution_[i].Lflow,evolution_[i].Lstep,tsteps_[i-1][j]);
       }
@@ -198,7 +183,7 @@ int KAZE::Create_Nonlinear_Scale_Space(const cv::Mat& img) {
                       evolution_[i].etime-evolution_[i-1].etime);
     }
 
-    if (verbosity_ == true) {
+    if (options_.verbosity == true) {
       cout << "Computed image evolution step " << i << " Evolution time: " << evolution_[i].etime <<
               " Sigma: " << evolution_[i].esigma << endl;
     }
@@ -216,18 +201,17 @@ int KAZE::Create_Nonlinear_Scale_Space(const cv::Mat& img) {
  * @param img Input image
  * @param kpercentile Percentile of the gradient histogram
 */
-void KAZE::Compute_KContrast(const cv::Mat &img, const float &kpercentile) {
+void KAZE::Compute_KContrast(const cv::Mat& img) {
 
-  if (verbosity_ == true) {
+  if (options_.verbosity == true) {
     cout << "Computing Kcontrast factor." << endl;
   }
 
-  if (COMPUTE_KCONTRAST == true) {
-    kcontrast_ = compute_k_percentile(img,kpercentile,sderivatives_,KCONTRAST_NBINS,0,0);
-  }
+  options_.kcontrast = compute_k_percentile(img,options_.kcontrast_percentile,
+                                            options_.sderivatives,options_.kcontrast_nbins,0,0);
 
-  if (verbosity_ == true) {
-    cout << "kcontrast = " << kcontrast_ << endl;
+  if (options_.verbosity == true) {
+    cout << "kcontrast = " << options_.kcontrast << endl;
     cout << endl << "Now computing the nonlinear scale space!!" << endl;
   }
 }
@@ -236,8 +220,8 @@ void KAZE::Compute_KContrast(const cv::Mat &img, const float &kpercentile) {
 /**
  * @brief This method computes the multiscale derivatives for the nonlinear scale space
 */
-void KAZE::Compute_Multiscale_Derivatives(void)
-{
+void KAZE::Compute_Multiscale_Derivatives() {
+
   double t2 = 0.0, t1 = 0.0;
   t1 = getTickCount();
 
@@ -246,7 +230,7 @@ void KAZE::Compute_Multiscale_Derivatives(void)
 #endif
   for (size_t i = 0; i < evolution_.size(); i++) {
 
-    if (verbosity_ == true) {
+    if (options_.verbosity == true) {
       cout << "Computing multiscale derivatives. Evolution time: " << evolution_[i].etime
            << " Step (pixels): " << evolution_[i].sigma_size << endl;
     }
@@ -274,7 +258,7 @@ void KAZE::Compute_Multiscale_Derivatives(void)
  * @brief This method computes the feature detector response for the nonlinear scale space
  * @note We use the Hessian determinant as feature detector
 */
-void KAZE::Compute_Detector_Response(void) {
+void KAZE::Compute_Detector_Response() {
 
   float lxx = 0.0, lxy = 0.0, lyy = 0.0;
 
@@ -284,11 +268,11 @@ void KAZE::Compute_Detector_Response(void) {
   for (size_t i = 0; i < evolution_.size(); i++) {
 
     // Determinant of the Hessian
-    if (verbosity_ == true)
+    if (options_.verbosity == true)
       cout << "Computing detector response. Determinant of Hessian. Evolution time: " << evolution_[i].etime << endl;
 
-    for (int ix = 0; ix < img_height_; ix++) {
-      for (int jx = 0; jx < img_width_; jx++) {
+    for (int ix = 0; ix < options_.img_height; ix++) {
+      for (int jx = 0; jx < options_.img_width; jx++) {
         lxx = *(evolution_[i].Lxx.ptr<float>(ix)+jx);
         lxy = *(evolution_[i].Lxy.ptr<float>(ix)+jx);
         lyy = *(evolution_[i].Lyy.ptr<float>(ix)+jx);
@@ -338,23 +322,21 @@ void KAZE::Determinant_Hessian_Parallel(std::vector<cv::KeyPoint>& kpts) {
 
   // Delete the memory of the vector of keypoints vectors
   // In case we use the same kaze object for multiple images
-  for (size_t i = 0; i < kpts_par_.size(); i++) {
+  for (size_t i = 0; i < kpts_par_.size(); i++)
     vector<KeyPoint>().swap(kpts_par_[i]);
-  }
+
   kpts_par_.clear();
   vector<KeyPoint> aux;
 
   // Allocate memory for the vector of vectors
-  for (size_t i = 1; i < evolution_.size()-1; i++) {
+  for (size_t i = 1; i < evolution_.size()-1; i++)
     kpts_par_.push_back(aux);
-  }
 
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-  for (size_t i = 1; i < evolution_.size()-1; i++) {
+  for (size_t i = 1; i < evolution_.size()-1; i++)
     Find_Extremum_Threading(i);
-  }
 
   // Now fill the vector of keypoints!!!
   for (size_t i = 0; i < kpts_par_.size(); i++) {
@@ -417,19 +399,19 @@ void KAZE::Determinant_Hessian_Parallel(std::vector<cv::KeyPoint>& kpts) {
  * at a given nonlinear scale level
  * @param level Index in the nonlinear scale space evolution
 */
-void KAZE::Find_Extremum_Threading(const int& level) {
+void KAZE::Find_Extremum_Threading(const int level) {
 
   float value = 0.0;
   bool is_extremum = false;
 
-  for (int ix = 1; ix < img_height_-1; ix++) {
-    for (int jx = 1; jx < img_width_-1; jx++) {
+  for (int ix = 1; ix < options_.img_height-1; ix++) {
+    for (int jx = 1; jx < options_.img_width-1; jx++) {
 
       is_extremum = false;
       value = *(evolution_[level].Ldet.ptr<float>(ix)+jx);
 
       // Filter the points with the detector threshold
-      if (value > dthreshold_ && value >= DEFAULT_MIN_DETECTOR_THRESHOLD) {
+      if (value > options_.dthreshold && value >= 0.00001) {
         if (value >= *(evolution_[level].Ldet.ptr<float>(ix)+jx-1)) {
           // First check on the same scale
           if (check_maximum_neighbourhood(evolution_[level].Ldet,1,value,ix,jx,1)) {
@@ -541,10 +523,10 @@ void KAZE::Do_Subpixel_Refinement(std::vector<cv::KeyPoint> &kpts) {
     if (fabs(*(dst.ptr<float>(0))) <= 1.0 && fabs(*(dst.ptr<float>(1))) <= 1.0 && fabs(*(dst.ptr<float>(2))) <= 1.0) {
       kpts_[i].pt.x += *(dst.ptr<float>(0));
       kpts_[i].pt.y += *(dst.ptr<float>(1));
-      dsc = kpts_[i].octave + (kpts_[i].angle+*(dst.ptr<float>(2)))/((float)(nsublevels_));
+      dsc = kpts_[i].octave + (kpts_[i].angle+*(dst.ptr<float>(2)))/((float)(options_.nsublevels));
 
       // In OpenCV the size of a keypoint is the diameter!!
-      kpts_[i].size = 2.0*soffset_*pow((float)2.0,dsc);
+      kpts_[i].size = 2.0*options_.soffset*pow((float)2.0,dsc);
       kpts_[i].angle = 0.0;
     }
     // Set the points to be deleted after the for loop
@@ -572,7 +554,7 @@ void KAZE::Do_Subpixel_Refinement(std::vector<cv::KeyPoint> &kpts) {
  * @param kpts Vector of keypoints
  * @param mdist Maximum distance in pixels
 */
-void KAZE::Feature_Suppression_Distance(std::vector<cv::KeyPoint>& kpts, const float& mdist) {
+void KAZE::Feature_Suppression_Distance(std::vector<cv::KeyPoint>& kpts, const float mdist) {
 
   vector<KeyPoint> aux;
   vector<int> to_delete;
@@ -632,133 +614,142 @@ void KAZE::Feature_Description(std::vector<cv::KeyPoint> &kpts, cv::Mat &desc) {
   t1 = getTickCount();
 
   // Allocate memory for the matrix of descriptors
-  if (use_extended_ == true) {
+  if (options_.descriptor == SURF_EXTENDED ||
+      options_.descriptor == SURF_EXTENDED_UPRIGHT ||
+      options_.descriptor == MSURF_EXTENDED ||
+      options_.descriptor == MSURF_EXTENDED_UPRIGHT ||
+      options_.descriptor == GSURF_EXTENDED ||
+      options_.descriptor == GSURF_EXTENDED_UPRIGHT) {
     desc = Mat::zeros(kpts.size(),128,CV_32FC1);
   }
   else {
     desc = Mat::zeros(kpts.size(),64,CV_32FC1);
   }
 
-  if (use_upright_ == true) {
-    if (use_extended_ == false) {
-      if (descriptor_mode_ == 0) {
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-        for (size_t i = 0; i < kpts.size(); i++) {
-          kpts[i].angle = 0.0;
-          Get_SURF_Upright_Descriptor_64(kpts[i],desc.ptr<float>(i));
-        }
-      }
-      else if (descriptor_mode_ == 1) {
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-        for (size_t i = 0; i < kpts.size(); i++) {
-          kpts[i].angle = 0.0;
-          Get_MSURF_Upright_Descriptor_64(kpts[i],desc.ptr<float>(i));
-        }
-      }
-      else if (descriptor_mode_ == 2) {
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-        for (size_t i = 0; i < kpts.size(); i++) {
-          kpts[i].angle = 0.0;
-          Get_GSURF_Upright_Descriptor_64(kpts[i],desc.ptr<float>(i));
-        }
-      }
-    }
-    else
+  switch (options_.descriptor) {
+
+    case SURF_UPRIGHT :
     {
-      if (descriptor_mode_ == 0) {
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-        for (size_t i = 0; i < kpts.size(); i++ ) {
-          kpts[i].angle = 0.0;
-          Get_SURF_Upright_Descriptor_128(kpts[i],desc.ptr<float>(i));
-        }
-      }
-      else if (descriptor_mode_ == 1) {
+      for (int i = 0; i < (int)(kpts.size()); i++)
+        Get_SURF_Upright_Descriptor_64(kpts[i],desc.ptr<float>(i));
+    }
+    break;
+    case SURF :
+    {
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-        for (size_t i = 0; i < kpts.size(); i++) {
-          kpts[i].angle = 0.0;
-          Get_MSURF_Upright_Descriptor_128(kpts[i],desc.ptr<float>(i));
-        }
-      }
-      else if (descriptor_mode_ == 2) {
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-        for (size_t i = 0; i < kpts.size(); i++) {
-          kpts[i].angle = 0.0;
-          Get_GSURF_Upright_Descriptor_128(kpts[i],desc.ptr<float>(i));
-        }
+      for (int i = 0; i < (int)(kpts.size()); i++) {
+        Compute_Main_Orientation(kpts[i]);
+        Get_SURF_Descriptor_64(kpts[i],desc.ptr<float>(i));
       }
     }
-  }
-  else {
-    if (use_extended_ == false) {
-      if (descriptor_mode_ == 0) {
+    break;
+    case SURF_EXTENDED :
+    {
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-        for (size_t i = 0; i < kpts.size(); i++) {
-          Compute_Main_Orientation_SURF(kpts[i]);
-          Get_SURF_Descriptor_64(kpts[i],desc.ptr<float>(i));
-        }
-      }
-      else if (descriptor_mode_ == 1) {
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-        for (size_t i = 0; i < kpts.size(); i++) {
-          Compute_Main_Orientation_SURF(kpts[i]);
-          Get_MSURF_Descriptor_64(kpts[i],desc.ptr<float>(i));
-        }
-      }
-      else if (descriptor_mode_ == 2) {
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-        for (size_t i = 0; i < kpts.size(); i++) {
-          Compute_Main_Orientation_SURF(kpts[i]);
-          Get_GSURF_Descriptor_64(kpts[i],desc.ptr<float>(i));
-        }
+      for (int i = 0; i < (int)(kpts.size()); i++) {
+        Compute_Main_Orientation(kpts[i]);
+        Get_SURF_Descriptor_128(kpts[i],desc.ptr<float>(i));
       }
     }
-    else {
-      if (descriptor_mode_ == 0) {
+    break;
+    case SURF_EXTENDED_UPRIGHT :
+    {
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-        for (size_t i = 0; i < kpts.size(); i++) {
-          Compute_Main_Orientation_SURF(kpts[i]);
-          Get_SURF_Descriptor_128(kpts[i],desc.ptr<float>(i));
-        }
-      }
-      else if (descriptor_mode_ == 1) {
+      for (int i = 0; i < (int)(kpts.size()); i++)
+        Get_SURF_Upright_Descriptor_128(kpts[i],desc.ptr<float>(i));
+    }
+    break;
+
+    case MSURF_UPRIGHT :
+    {
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-        for(size_t i = 0; i < kpts.size(); i++) {
-          Compute_Main_Orientation_SURF(kpts[i]);
-          Get_MSURF_Descriptor_128(kpts[i],desc.ptr<float>(i));
-        }
-      }
-      else if (descriptor_mode_ == 2) {
+      for (int i = 0; i < (int)(kpts.size()); i++)
+        Get_MSURF_Upright_Descriptor_64(kpts[i],desc.ptr<float>(i));
+    }
+    break;
+    case MSURF :
+    {
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-        for( size_t i = 0; i < kpts.size(); i++ ) {
-          Compute_Main_Orientation_SURF(kpts[i]);
-          Get_GSURF_Descriptor_128(kpts[i],desc.ptr<float>(i));
-        }
+      for (int i = 0; i < (int)(kpts.size()); i++) {
+        Compute_Main_Orientation(kpts[i]);
+        Get_MSURF_Descriptor_64(kpts[i],desc.ptr<float>(i));
       }
     }
+    break;
+    case MSURF_EXTENDED :
+    {
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+      for (int i = 0; i < (int)(kpts.size()); i++) {
+        Compute_Main_Orientation(kpts[i]);
+        Get_MSURF_Descriptor_128(kpts[i],desc.ptr<float>(i));
+      }
+    }
+    break;
+    case MSURF_EXTENDED_UPRIGHT :
+    {
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+      for (int i = 0; i < (int)(kpts.size()); i++)
+        Get_MSURF_Upright_Descriptor_128(kpts[i],desc.ptr<float>(i));
+    }
+    break;
+
+    case GSURF_UPRIGHT :
+    {
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+      for (int i = 0; i < (int)(kpts.size()); i++)
+        Get_GSURF_Upright_Descriptor_64(kpts[i],desc.ptr<float>(i));
+    }
+    break;
+    case GSURF :
+    {
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+      for (int i = 0; i < (int)(kpts.size()); i++) {
+        Compute_Main_Orientation(kpts[i]);
+        Get_GSURF_Descriptor_64(kpts[i],desc.ptr<float>(i));
+      }
+    }
+    break;
+    case GSURF_EXTENDED :
+    {
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+      for (int i = 0; i < (int)(kpts.size()); i++) {
+        Compute_Main_Orientation(kpts[i]);
+        Get_GSURF_Descriptor_128(kpts[i],desc.ptr<float>(i));
+      }
+    }
+    break;
+    case GSURF_EXTENDED_UPRIGHT :
+    {
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+      for (int i = 0; i < (int)(kpts.size()); i++)
+        Get_GSURF_Upright_Descriptor_128(kpts[i],desc.ptr<float>(i));
+    }
+    break;
   }
 
   t2 = getTickCount();
@@ -772,8 +763,8 @@ void KAZE::Feature_Description(std::vector<cv::KeyPoint> &kpts, cv::Mat &desc) {
  * @note The orientation is computed using a similar approach as described in the
  * original SURF method. See Bay et al., Speeded Up Robust Features, ECCV 2006
 */
-void KAZE::Compute_Main_Orientation_SURF(cv::KeyPoint &kpt)
-{
+void KAZE::Compute_Main_Orientation(cv::KeyPoint& kpt) {
+
   int ix = 0, iy = 0, idx = 0, s = 0, level = 0;
   float xf = 0.0, yf = 0.0, gweight = 0.0;
   vector<float> resX(109), resY(109), Ang(109);
@@ -794,7 +785,7 @@ void KAZE::Compute_Main_Orientation_SURF(cv::KeyPoint &kpt)
         iy = fRound(yf + j*s);
         ix = fRound(xf + i*s);
 
-        if (iy >= 0 && iy < img_height_ && ix >= 0 && ix < img_width_ ) {
+        if (iy >= 0 && iy < options_.img_height && ix >= 0 && ix < options_.img_width) {
           gweight = gaussian(iy-yf,ix-xf,2.5*s);
           resX[idx] = gweight*(*(evolution_[level].Lx.ptr<float>(iy)+ix));
           resY[idx] = gweight*(*(evolution_[level].Ly.ptr<float>(iy)+ix));
@@ -885,12 +876,12 @@ void KAZE::Get_SURF_Upright_Descriptor_64(const cv::KeyPoint &kpt, float *desc)
           y1 = (int)(sample_y-.5);
           x1 = (int)(sample_x-.5);
 
-          checkDescriptorLimits(x1,y1,img_width_,img_height_);
+          checkDescriptorLimits(x1,y1,options_.img_width,options_.img_height);
 
           y2 = (int)(sample_y+.5);
           x2 = (int)(sample_x+.5);
 
-          checkDescriptorLimits(x2,y2,img_width_,img_height_);
+          checkDescriptorLimits(x2,y2,options_.img_width,options_.img_height);
 
           fx = sample_x-x1;
           fy = sample_y-y1;
@@ -929,13 +920,8 @@ void KAZE::Get_SURF_Upright_Descriptor_64(const cv::KeyPoint &kpt, float *desc)
   // convert to unit vector
   len = sqrt(len);
 
-  for (int i = 0; i < dsize; i++) {
+  for (int i = 0; i < dsize; i++)
     desc[i] /= len;
-  }
-
-  if (USE_CLIPPING_NORMALIZATION == true) {
-    clippingDescriptor(desc,dsize,CLIPPING_NORMALIZATION_NITER,CLIPPING_NORMALIZATION_RATIO);
-  }
 }
 
 /* ************************************************************************* */
@@ -986,12 +972,12 @@ void KAZE::Get_SURF_Descriptor_64(const cv::KeyPoint &kpt, float *desc) {
           y1 = (int)(sample_y-.5);
           x1 = (int)(sample_x-.5);
 
-          checkDescriptorLimits(x1,y1,img_width_,img_height_);
+          checkDescriptorLimits(x1,y1,options_.img_width,options_.img_height);
 
           y2 = (int)(sample_y+.5);
           x2 = (int)(sample_x+.5);
 
-          checkDescriptorLimits(x2,y2,img_width_,img_height_);
+          checkDescriptorLimits(x2,y2,options_.img_width,options_.img_height);
 
           fx = sample_x-x1;
           fy = sample_y-y1;
@@ -1034,13 +1020,8 @@ void KAZE::Get_SURF_Descriptor_64(const cv::KeyPoint &kpt, float *desc) {
   // convert to unit vector
   len = sqrt(len);
 
-  for (int i = 0; i < dsize; i++) {
+  for (int i = 0; i < dsize; i++)
     desc[i] /= len;
-  }
-
-  if (USE_CLIPPING_NORMALIZATION == true) {
-    clippingDescriptor(desc,dsize,CLIPPING_NORMALIZATION_NITER,CLIPPING_NORMALIZATION_RATIO);
-  }
 }
 
 /* ************************************************************************* */
@@ -1112,12 +1093,12 @@ void KAZE::Get_MSURF_Upright_Descriptor_64(const cv::KeyPoint &kpt, float *desc)
           y1 = (int)(sample_y-.5);
           x1 = (int)(sample_x-.5);
 
-          checkDescriptorLimits(x1,y1,img_width_,img_height_);
+          checkDescriptorLimits(x1,y1,options_.img_width,options_.img_height);
 
           y2 = (int)(sample_y+.5);
           x2 = (int)(sample_x+.5);
 
-          checkDescriptorLimits(x2,y2,img_width_,img_height_);
+          checkDescriptorLimits(x2,y2,options_.img_width,options_.img_height);
 
           fx = sample_x-x1;
           fy = sample_y-y1;
@@ -1164,13 +1145,8 @@ void KAZE::Get_MSURF_Upright_Descriptor_64(const cv::KeyPoint &kpt, float *desc)
   // convert to unit vector
   len = sqrt(len);
 
-  for (int i = 0; i < dsize; i++) {
+  for (int i = 0; i < dsize; i++)
     desc[i] /= len;
-  }
-
-  if (USE_CLIPPING_NORMALIZATION == true) {
-    clippingDescriptor(desc,dsize,CLIPPING_NORMALIZATION_NITER,CLIPPING_NORMALIZATION_RATIO);
-  }
 }
 
 /* ************************************************************************* */
@@ -1246,12 +1222,12 @@ void KAZE::Get_MSURF_Descriptor_64(const cv::KeyPoint &kpt, float *desc) {
           y1 = fRound(sample_y-.5);
           x1 = fRound(sample_x-.5);
 
-          checkDescriptorLimits(x1,y1,img_width_,img_height_);
+          checkDescriptorLimits(x1,y1,options_.img_width,options_.img_height);
 
           y2 = (int)(sample_y+.5);
           x2 = (int)(sample_x+.5);
 
-          checkDescriptorLimits(x2,y2,img_width_,img_height_);
+          checkDescriptorLimits(x2,y2,options_.img_width,options_.img_height);
 
           fx = sample_x-x1;
           fy = sample_y-y1;
@@ -1295,13 +1271,8 @@ void KAZE::Get_MSURF_Descriptor_64(const cv::KeyPoint &kpt, float *desc) {
   // convert to unit vector
   len = sqrt(len);
 
-  for (int i = 0; i < dsize; i++) {
+  for (int i = 0; i < dsize; i++)
     desc[i] /= len;
-  }
-
-  if (USE_CLIPPING_NORMALIZATION == true) {
-    clippingDescriptor(desc,dsize,CLIPPING_NORMALIZATION_NITER,CLIPPING_NORMALIZATION_RATIO);
-  }
 }
 
 /* ************************************************************************* */
@@ -1351,148 +1322,12 @@ void KAZE::Get_GSURF_Upright_Descriptor_64(const cv::KeyPoint &kpt, float *desc)
           y1 = (int)(sample_y-.5);
           x1 = (int)(sample_x-.5);
 
-          checkDescriptorLimits(x1,y1,img_width_,img_height_);
+          checkDescriptorLimits(x1,y1,options_.img_width,options_.img_height);
 
           y2 = (int)(sample_y+.5);
           x2 = (int)(sample_x+.5);
 
-          checkDescriptorLimits(x2,y2,img_width_,img_height_);
-
-          fx = sample_x-x1;
-          fy = sample_y-y1;
-
-          res1 = *(evolution_[level].Lx.ptr<float>(y1)+x1);
-          res2 = *(evolution_[level].Lx.ptr<float>(y1)+x2);
-          res3 = *(evolution_[level].Lx.ptr<float>(y2)+x1);
-          res4 = *(evolution_[level].Lx.ptr<float>(y2)+x2);
-          rx = (1.0-fx)*(1.0-fy)*res1 + fx*(1.0-fy)*res2 + (1.0-fx)*fy*res3 + fx*fy*res4;
-
-          res1 = *(evolution_[level].Ly.ptr<float>(y1)+x1);
-          res2 = *(evolution_[level].Ly.ptr<float>(y1)+x2);
-          res3 = *(evolution_[level].Ly.ptr<float>(y2)+x1);
-          res4 = *(evolution_[level].Ly.ptr<float>(y2)+x2);
-          ry = (1.0-fx)*(1.0-fy)*res1 + fx*(1.0-fy)*res2 + (1.0-fx)*fy*res3 + fx*fy*res4;
-
-          modg = pow(rx,2) + pow(ry,2);
-
-          if (modg != 0.0) {
-
-            res1 = *(evolution_[level].Lxx.ptr<float>(y1)+x1);
-            res2 = *(evolution_[level].Lxx.ptr<float>(y1)+x2);
-            res3 = *(evolution_[level].Lxx.ptr<float>(y2)+x1);
-            res4 = *(evolution_[level].Lxx.ptr<float>(y2)+x2);
-            rxx = (1.0-fx)*(1.0-fy)*res1 + fx*(1.0-fy)*res2 + (1.0-fx)*fy*res3 + fx*fy*res4;
-
-            res1 = *(evolution_[level].Lxy.ptr<float>(y1)+x1);
-            res2 = *(evolution_[level].Lxy.ptr<float>(y1)+x2);
-            res3 = *(evolution_[level].Lxy.ptr<float>(y2)+x1);
-            res4 = *(evolution_[level].Lxy.ptr<float>(y2)+x2);
-            rxy = (1.0-fx)*(1.0-fy)*res1 + fx*(1.0-fy)*res2 + (1.0-fx)*fy*res3 + fx*fy*res4;
-
-            res1 = *(evolution_[level].Lyy.ptr<float>(y1)+x1);
-            res2 = *(evolution_[level].Lyy.ptr<float>(y1)+x2);
-            res3 = *(evolution_[level].Lyy.ptr<float>(y2)+x1);
-            res4 = *(evolution_[level].Lyy.ptr<float>(y2)+x2);
-            ryy = (1.0-fx)*(1.0-fy)*res1 + fx*(1.0-fy)*res2 + (1.0-fx)*fy*res3 + fx*fy*res4;
-
-            // Lww = (Lx^2 * Lxx + 2*Lx*Lxy*Ly + Ly^2*Lyy) / (Lx^2 + Ly^2)
-            lww = (pow(rx,2)*rxx + 2.0*rx*rxy*ry + pow(ry,2)*ryy) / (modg);
-
-            // Lvv = (-2*Lx*Lxy*Ly + Lxx*Ly^2 + Lx^2*Lyy) / (Lx^2 + Ly^2)
-            lvv = (-2.0*rx*rxy*ry + rxx*pow(ry,2) + pow(rx,2)*ryy) /(modg);
-          }
-          else {
-            lww = 0.0;
-            lvv = 0.0;
-          }
-
-          // Sum the derivatives to the cumulative descriptor
-          dx += lww;
-          dy += lvv;
-          mdx += fabs(lww);
-          mdy += fabs(lvv);
-        }
-      }
-
-      // Add the values to the descriptor vector
-      desc[dcount++] = dx;
-      desc[dcount++] = dy;
-      desc[dcount++] = mdx;
-      desc[dcount++] = mdy;
-
-      // Store the current length^2 of the vector
-      len += dx*dx + dy*dy + mdx*mdx + mdy*mdy;
-    }
-  }
-
-  // convert to unit vector
-  len = sqrt(len);
-
-  for (int i = 0; i < dsize; i++) {
-    desc[i] /= len;
-  }
-
-  if (USE_CLIPPING_NORMALIZATION == true) {
-    clippingDescriptor(desc,dsize,CLIPPING_NORMALIZATION_NITER,CLIPPING_NORMALIZATION_RATIO);
-  }
-}
-
-/* ************************************************************************* */
-/**
- * @brief This method computes the G-SURF descriptor of the provided keypoint given the
- * main orientation
- * @param kpt Input keypoint
- * @param desc Descriptor vector
- * @note Rectangular grid of 20 s x 20 s. Descriptor Length 64. No additional
- * G-SURF descriptor as described in Pablo F. Alcantarilla, Luis M. Bergasa and
- * Andrew J. Davison, Gauge-SURF Descriptors, Image and Vision Computing 31(1), 2013
-*/
-void KAZE::Get_GSURF_Descriptor_64(const cv::KeyPoint &kpt, float *desc) {
-
-  float dx = 0.0, dy = 0.0, mdx = 0.0, mdy = 0.0;
-  float rx = 0.0, ry = 0.0, rxx = 0.0, rxy = 0.0, ryy = 0.0, len = 0.0, xf = 0.0, yf = 0.0;
-  float sample_x = 0.0, sample_y = 0.0, co = 0.0, si = 0.0, angle = 0.0;
-  float fx = 0.0, fy = 0.0, res1 = 0.0, res2 = 0.0, res3 = 0.0, res4 = 0.0;
-  float lvv = 0.0, lww = 0.0, modg = 0.0;
-  int x1 = 0, y1 = 0, x2 = 0, y2 = 0, sample_step = 0, pattern_size = 0, dcount = 0;
-  int dsize = 0, scale = 0, level = 0;
-
-  // Set the descriptor size and the sample and pattern sizes
-  dsize = 64;
-  sample_step = 5;
-  pattern_size = 10;
-
-  // Get the information from the keypoint
-  yf = kpt.pt.y;
-  xf = kpt.pt.x;
-  scale = fRound(kpt.size/2.0);
-  angle = kpt.angle;
-  level = kpt.class_id;
-  co = cos(angle);
-  si = sin(angle);
-
-  // Calculate descriptor for this interest point
-  for (int i = -pattern_size; i < pattern_size; i+=sample_step) {
-    for (int j = -pattern_size; j < pattern_size; j+=sample_step) {
-
-      dx=dy=mdx=mdy=0.0;
-
-      for (int k = i; k < i + sample_step; k++) {
-        for (int l = j; l < j + sample_step; l++) {
-
-          // Get the coordinates of the sample point on the rotated axis
-          sample_y = yf + (l*scale*co + k*scale*si);
-          sample_x = xf + (-l*scale*si + k*scale*co);
-
-          y1 = (int)(sample_y-.5);
-          x1 = (int)(sample_x-.5);
-
-          checkDescriptorLimits(x1,y1,img_width_,img_height_);
-
-          y2 = (int)(sample_y+.5);
-          x2 = (int)(sample_x+.5);
-
-          checkDescriptorLimits(x2,y2,img_width_,img_height_);
+          checkDescriptorLimits(x2,y2,options_.img_width,options_.img_height);
 
           fx = sample_x-x1;
           fy = sample_y-y1;
@@ -1566,10 +1401,137 @@ void KAZE::Get_GSURF_Descriptor_64(const cv::KeyPoint &kpt, float *desc) {
 
   for (int i = 0; i < dsize; i++)
     desc[i] /= len;
+}
 
-  if (USE_CLIPPING_NORMALIZATION == true) {
-    clippingDescriptor(desc,dsize,CLIPPING_NORMALIZATION_NITER,CLIPPING_NORMALIZATION_RATIO);
+/* ************************************************************************* */
+/**
+ * @brief This method computes the G-SURF descriptor of the provided keypoint given the
+ * main orientation
+ * @param kpt Input keypoint
+ * @param desc Descriptor vector
+ * @note Rectangular grid of 20 s x 20 s. Descriptor Length 64. No additional
+ * G-SURF descriptor as described in Pablo F. Alcantarilla, Luis M. Bergasa and
+ * Andrew J. Davison, Gauge-SURF Descriptors, Image and Vision Computing 31(1), 2013
+*/
+void KAZE::Get_GSURF_Descriptor_64(const cv::KeyPoint &kpt, float *desc) {
+
+  float dx = 0.0, dy = 0.0, mdx = 0.0, mdy = 0.0;
+  float rx = 0.0, ry = 0.0, rxx = 0.0, rxy = 0.0, ryy = 0.0, len = 0.0, xf = 0.0, yf = 0.0;
+  float sample_x = 0.0, sample_y = 0.0, co = 0.0, si = 0.0, angle = 0.0;
+  float fx = 0.0, fy = 0.0, res1 = 0.0, res2 = 0.0, res3 = 0.0, res4 = 0.0;
+  float lvv = 0.0, lww = 0.0, modg = 0.0;
+  int x1 = 0, y1 = 0, x2 = 0, y2 = 0, sample_step = 0, pattern_size = 0, dcount = 0;
+  int dsize = 0, scale = 0, level = 0;
+
+  // Set the descriptor size and the sample and pattern sizes
+  dsize = 64;
+  sample_step = 5;
+  pattern_size = 10;
+
+  // Get the information from the keypoint
+  yf = kpt.pt.y;
+  xf = kpt.pt.x;
+  scale = fRound(kpt.size/2.0);
+  angle = kpt.angle;
+  level = kpt.class_id;
+  co = cos(angle);
+  si = sin(angle);
+
+  // Calculate descriptor for this interest point
+  for (int i = -pattern_size; i < pattern_size; i+=sample_step) {
+    for (int j = -pattern_size; j < pattern_size; j+=sample_step) {
+
+      dx=dy=mdx=mdy=0.0;
+
+      for (int k = i; k < i + sample_step; k++) {
+        for (int l = j; l < j + sample_step; l++) {
+
+          // Get the coordinates of the sample point on the rotated axis
+          sample_y = yf + (l*scale*co + k*scale*si);
+          sample_x = xf + (-l*scale*si + k*scale*co);
+
+          y1 = (int)(sample_y-.5);
+          x1 = (int)(sample_x-.5);
+
+          checkDescriptorLimits(x1,y1,options_.img_width,options_.img_height);
+
+          y2 = (int)(sample_y+.5);
+          x2 = (int)(sample_x+.5);
+
+          checkDescriptorLimits(x2,y2,options_.img_width,options_.img_height);
+
+          fx = sample_x-x1;
+          fy = sample_y-y1;
+
+          res1 = *(evolution_[level].Lx.ptr<float>(y1)+x1);
+          res2 = *(evolution_[level].Lx.ptr<float>(y1)+x2);
+          res3 = *(evolution_[level].Lx.ptr<float>(y2)+x1);
+          res4 = *(evolution_[level].Lx.ptr<float>(y2)+x2);
+          rx = (1.0-fx)*(1.0-fy)*res1 + fx*(1.0-fy)*res2 + (1.0-fx)*fy*res3 + fx*fy*res4;
+
+          res1 = *(evolution_[level].Ly.ptr<float>(y1)+x1);
+          res2 = *(evolution_[level].Ly.ptr<float>(y1)+x2);
+          res3 = *(evolution_[level].Ly.ptr<float>(y2)+x1);
+          res4 = *(evolution_[level].Ly.ptr<float>(y2)+x2);
+          ry = (1.0-fx)*(1.0-fy)*res1 + fx*(1.0-fy)*res2 + (1.0-fx)*fy*res3 + fx*fy*res4;
+
+          modg = pow(rx,2) + pow(ry,2);
+
+          if (modg != 0.0) {
+
+            res1 = *(evolution_[level].Lxx.ptr<float>(y1)+x1);
+            res2 = *(evolution_[level].Lxx.ptr<float>(y1)+x2);
+            res3 = *(evolution_[level].Lxx.ptr<float>(y2)+x1);
+            res4 = *(evolution_[level].Lxx.ptr<float>(y2)+x2);
+            rxx = (1.0-fx)*(1.0-fy)*res1 + fx*(1.0-fy)*res2 + (1.0-fx)*fy*res3 + fx*fy*res4;
+
+            res1 = *(evolution_[level].Lxy.ptr<float>(y1)+x1);
+            res2 = *(evolution_[level].Lxy.ptr<float>(y1)+x2);
+            res3 = *(evolution_[level].Lxy.ptr<float>(y2)+x1);
+            res4 = *(evolution_[level].Lxy.ptr<float>(y2)+x2);
+            rxy = (1.0-fx)*(1.0-fy)*res1 + fx*(1.0-fy)*res2 + (1.0-fx)*fy*res3 + fx*fy*res4;
+
+            res1 = *(evolution_[level].Lyy.ptr<float>(y1)+x1);
+            res2 = *(evolution_[level].Lyy.ptr<float>(y1)+x2);
+            res3 = *(evolution_[level].Lyy.ptr<float>(y2)+x1);
+            res4 = *(evolution_[level].Lyy.ptr<float>(y2)+x2);
+            ryy = (1.0-fx)*(1.0-fy)*res1 + fx*(1.0-fy)*res2 + (1.0-fx)*fy*res3 + fx*fy*res4;
+
+            // Lww = (Lx^2 * Lxx + 2*Lx*Lxy*Ly + Ly^2*Lyy) / (Lx^2 + Ly^2)
+            lww = (pow(rx,2)*rxx + 2.0*rx*rxy*ry + pow(ry,2)*ryy) / (modg);
+
+            // Lvv = (-2*Lx*Lxy*Ly + Lxx*Ly^2 + Lx^2*Lyy) / (Lx^2 + Ly^2)
+            lvv = (-2.0*rx*rxy*ry + rxx*pow(ry,2) + pow(rx,2)*ryy) /(modg);
+          }
+          else {
+            lww = 0.0;
+            lvv = 0.0;
+          }
+
+          // Sum the derivatives to the cumulative descriptor
+          dx += lww;
+          dy += lvv;
+          mdx += fabs(lww);
+          mdy += fabs(lvv);
+        }
+      }
+
+      // Add the values to the descriptor vector
+      desc[dcount++] = dx;
+      desc[dcount++] = dy;
+      desc[dcount++] = mdx;
+      desc[dcount++] = mdy;
+
+      // Store the current length^2 of the vector
+      len += dx*dx + dy*dy + mdx*mdx + mdy*mdy;
+    }
   }
+
+  // convert to unit vector
+  len = sqrt(len);
+
+  for (int i = 0; i < dsize; i++)
+    desc[i] /= len;
 }
 
 /* ************************************************************************* */
@@ -1618,12 +1580,12 @@ void KAZE::Get_SURF_Upright_Descriptor_128(const cv::KeyPoint &kpt, float *desc)
           y1 = (int)(sample_y-.5);
           x1 = (int)(sample_x-.5);
 
-          checkDescriptorLimits(x1,y1,img_width_,img_height_);
+          checkDescriptorLimits(x1,y1,options_.img_width,options_.img_height);
 
           y2 = (int)(sample_y+.5);
           x2 = (int)(sample_x+.5);
 
-          checkDescriptorLimits(x2,y2,img_width_,img_height_);
+          checkDescriptorLimits(x2,y2,options_.img_width,options_.img_height);
 
           fx = sample_x-x1;
           fy = sample_y-y1;
@@ -1682,9 +1644,6 @@ void KAZE::Get_SURF_Upright_Descriptor_128(const cv::KeyPoint &kpt, float *desc)
 
   for (int i = 0; i < dsize; i++)
     desc[i] /= len;
-
-  if (USE_CLIPPING_NORMALIZATION == true)
-    clippingDescriptor(desc,dsize,CLIPPING_NORMALIZATION_NITER,CLIPPING_NORMALIZATION_RATIO);
 }
 
 /* ************************************************************************* */
@@ -1738,12 +1697,12 @@ void KAZE::Get_SURF_Descriptor_128(const cv::KeyPoint &kpt, float *desc) {
           y1 = (int)(sample_y-.5);
           x1 = (int)(sample_x-.5);
 
-          checkDescriptorLimits(x1,y1,img_width_,img_height_);
+          checkDescriptorLimits(x1,y1,options_.img_width,options_.img_height);
 
           y2 = (int)(sample_y+.5);
           x2 = (int)(sample_x+.5);
 
-          checkDescriptorLimits(x2,y2,img_width_,img_height_);
+          checkDescriptorLimits(x2,y2,options_.img_width,options_.img_height);
 
           fx = sample_x-x1;
           fy = sample_y-y1;
@@ -1806,9 +1765,6 @@ void KAZE::Get_SURF_Descriptor_128(const cv::KeyPoint &kpt, float *desc) {
 
   for (int i = 0; i < dsize; i++)
     desc[i] /= len;
-
-  if (USE_CLIPPING_NORMALIZATION == true)
-    clippingDescriptor(desc,dsize,CLIPPING_NORMALIZATION_NITER,CLIPPING_NORMALIZATION_RATIO);
 }
 
 /* ************************************************************************* */
@@ -1885,12 +1841,12 @@ void KAZE::Get_MSURF_Upright_Descriptor_128(const cv::KeyPoint &kpt, float *desc
           y1 = (int)(sample_y-.5);
           x1 = (int)(sample_x-.5);
 
-          checkDescriptorLimits(x1,y1,img_width_,img_height_);
+          checkDescriptorLimits(x1,y1,options_.img_width,options_.img_height);
 
           y2 = (int)(sample_y+.5);
           x2 = (int)(sample_x+.5);
 
-          checkDescriptorLimits(x2,y2,img_width_,img_height_);
+          checkDescriptorLimits(x2,y2,options_.img_width,options_.img_height);
 
           fx = sample_x-x1;
           fy = sample_y-y1;
@@ -1956,13 +1912,8 @@ void KAZE::Get_MSURF_Upright_Descriptor_128(const cv::KeyPoint &kpt, float *desc
   // convert to unit vector
   len = sqrt(len);
 
-  for (int i = 0; i < dsize; i++) {
+  for (int i = 0; i < dsize; i++)
     desc[i] /= len;
-  }
-
-  if (USE_CLIPPING_NORMALIZATION == true) {
-    clippingDescriptor(desc,dsize,CLIPPING_NORMALIZATION_NITER,CLIPPING_NORMALIZATION_RATIO);
-  }
 }
 
 /* ************************************************************************* */
@@ -2043,12 +1994,12 @@ void KAZE::Get_MSURF_Descriptor_128(const cv::KeyPoint &kpt, float *desc) {
           y1 = fRound(sample_y-.5);
           x1 = fRound(sample_x-.5);
 
-          checkDescriptorLimits(x1,y1,img_width_,img_height_);
+          checkDescriptorLimits(x1,y1,options_.img_width,options_.img_height);
 
           y2 = (int)(sample_y+.5);
           x2 = (int)(sample_x+.5);
 
-          checkDescriptorLimits(x2,y2,img_width_,img_height_);
+          checkDescriptorLimits(x2,y2,options_.img_width,options_.img_height);
 
           fx = sample_x-x1;
           fy = sample_y-y1;
@@ -2115,13 +2066,8 @@ void KAZE::Get_MSURF_Descriptor_128(const cv::KeyPoint &kpt, float *desc) {
   // convert to unit vector
   len = sqrt(len);
 
-  for (int i = 0; i < dsize; i++) {
+  for (int i = 0; i < dsize; i++)
     desc[i] /= len;
-  }
-
-  if (USE_CLIPPING_NORMALIZATION == true) {
-    clippingDescriptor(desc,dsize,CLIPPING_NORMALIZATION_NITER,CLIPPING_NORMALIZATION_RATIO);
-  }
 }
 
 /* ************************************************************************* */
@@ -2171,12 +2117,12 @@ void KAZE::Get_GSURF_Upright_Descriptor_128(const cv::KeyPoint &kpt, float *desc
           y1 = (int)(sample_y-.5);
           x1 = (int)(sample_x-.5);
 
-          checkDescriptorLimits(x1,y1,img_width_,img_height_);
+          checkDescriptorLimits(x1,y1,options_.img_width,options_.img_height);
 
           y2 = (int)(sample_y+.5);
           x2 = (int)(sample_x+.5);
 
-          checkDescriptorLimits(x2,y2,img_width_,img_height_);
+          checkDescriptorLimits(x2,y2,options_.img_width,options_.img_height);
 
           fx = sample_x-x1;
           fy = sample_y-y1;
@@ -2268,9 +2214,6 @@ void KAZE::Get_GSURF_Upright_Descriptor_128(const cv::KeyPoint &kpt, float *desc
 
   for (int i = 0; i < dsize; i++)
     desc[i] /= len;
-
-  if (USE_CLIPPING_NORMALIZATION == true)
-    clippingDescriptor(desc,dsize,CLIPPING_NORMALIZATION_NITER,CLIPPING_NORMALIZATION_RATIO);
 }
 
 /* ************************************************************************* */
@@ -2326,12 +2269,12 @@ void KAZE::Get_GSURF_Descriptor_128(const cv::KeyPoint &kpt, float *desc) {
           y1 = (int)(sample_y-.5);
           x1 = (int)(sample_x-.5);
 
-          checkDescriptorLimits(x1,y1,img_width_,img_height_);
+          checkDescriptorLimits(x1,y1,options_.img_width,options_.img_height);
 
           y2 = (int)(sample_y+.5);
           x2 = (int)(sample_x+.5);
 
-          checkDescriptorLimits(x2,y2,img_width_,img_height_);
+          checkDescriptorLimits(x2,y2,options_.img_width,options_.img_height);
 
           fx = sample_x-x1;
           fy = sample_y-y1;
@@ -2422,9 +2365,6 @@ void KAZE::Get_GSURF_Descriptor_128(const cv::KeyPoint &kpt, float *desc) {
 
   for (int i = 0; i < dsize; i++)
     desc[i] /= len;
-
-  if (USE_CLIPPING_NORMALIZATION == true)
-    clippingDescriptor(desc,dsize,CLIPPING_NORMALIZATION_NITER,CLIPPING_NORMALIZATION_RATIO);
 }
 
 /* ************************************************************************* */
@@ -2611,7 +2551,7 @@ void KAZE::Thomas(const cv::Mat &a, const cv::Mat &b, const cv::Mat &Ld, cv::Mat
 void KAZE::Save_Nonlinear_Scale_Space(void) {
 
   Mat img_aux;
-  char outputFile[NMAX_CHAR];
+  char outputFile[500];
 
   for (size_t i = 0; i < evolution_.size(); i++) {
     convert_scale(evolution_[i].Lflow);
@@ -2629,7 +2569,7 @@ void KAZE::Save_Nonlinear_Scale_Space(void) {
 void KAZE::Save_Detector_Responses(void) {
 
   Mat img_aux;
-  char outputFile[NMAX_CHAR];
+  char outputFile[500];
 
   for (size_t i = 0; i < evolution_.size(); i++) {
     convert_scale(evolution_[i].Ldet);
@@ -2647,7 +2587,7 @@ void KAZE::Save_Detector_Responses(void) {
 void KAZE::Save_Flow_Responses(void) {
 
   Mat img_aux;
-  char outputFile[NMAX_CHAR];
+  char outputFile[500];
 
   for (size_t i = 0; i < evolution_.size(); i++) {
     convert_scale(evolution_[i].Lflow);
@@ -2680,40 +2620,6 @@ inline float getAngle(const float& x, const float& y) {
 
 /* ************************************************************************* */
 /**
- * @brief This function performs descriptor clipping
- * @param desc_ Pointer to the descriptor vector
- * @param dsize Size of the descriptor vector
- * @param iter Number of iterations
- * @param ratio Clipping ratio
-*/
-inline void clippingDescriptor(float *desc, const int& dsize, const int& niter, const float& ratio) {
-
-  float cratio = ratio / sqrt(dsize);
-  float len = 0.0;
-
-  for (int i = 0; i < niter; i++) {
-    len = 0.0;
-    for (int j = 0; j < dsize; j++) {
-      if (desc[j] > cratio) {
-        desc[j] = cratio;
-      }
-      else if (desc[j] < -cratio) {
-        desc[j] = -cratio;
-      }
-      len += desc[j]*desc[j];
-    }
-
-    // Normalize again
-    len = sqrt(len);
-
-    for (int j = 0; j < dsize; j++) {
-      desc[j] = desc[j] / len;
-    }
-  }
-}
-
-/* ************************************************************************* */
-/**
  * @brief This function computes the value of a 2D Gaussian function
  * @param x X Position
  * @param y Y Position
@@ -2731,7 +2637,7 @@ inline float gaussian(const float& x, const float& y, const float& sig) {
  * @param width Image width
  * @param height Image height
 */
-inline void checkDescriptorLimits(int &x, int &y, const int& width, const int& height) {
+inline void checkDescriptorLimits(int& x, int& y, const int width, const int height) {
 
   if (x < 0)
     x = 0;

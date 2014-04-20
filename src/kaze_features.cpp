@@ -79,25 +79,23 @@ int main(int argc, char* argv[]) {
     evolution.Save_Flow_Responses();
   }
 
-  if (options.show_results == true) {
-    KAZETiming timing = evolution.Get_Computation_Times();
-    cout << "Time Scale Space: " << timing.scale << endl;
-    cout << "Time Detector: " << timing.detector << endl;
-    cout << "Time Descriptor: " << timing.descriptor << endl;
-    cout << "Number of Keypoints: " << kpts.size() << endl;
+  KAZETiming timing = evolution.Get_Computation_Times();
+  cout << "Time Scale Space: " << timing.scale << endl;
+  cout << "Time Detector: " << timing.detector << endl;
+  cout << "Time Descriptor: " << timing.descriptor << endl;
+  cout << "Number of Keypoints: " << kpts.size() << endl;
 
-    // Create the OpenCV window
-    cv::namedWindow("Image",CV_WINDOW_FREERATIO);
+  // Create the OpenCV window
+  cv::namedWindow("Image",CV_WINDOW_FREERATIO);
 
-    // Copy the input image to the color one
-    cv::cvtColor(img,img_rgb,CV_GRAY2BGR);
+  // Copy the input image to the color one
+  cv::cvtColor(img,img_rgb,CV_GRAY2BGR);
 
-    // Draw the list of detected points
-    draw_keypoints(img_rgb,kpts);
+  // Draw the list of detected points
+  draw_keypoints(img_rgb,kpts);
 
-    cv::imshow("Image", img_rgb);
-    cv::waitKey(0);
-  }
+  cv::imshow("Image", img_rgb);
+  cv::waitKey(0);
 
   // Save the list of keypoints
   if (options.save_keypoints == true)
@@ -191,10 +189,9 @@ int parse_input_options(KAZEOptions& options, std::string& img_path,
           return -1;
         }
         else {
-          options.descriptor = atoi(argv[i]);
-
-          if (options.descriptor > 2 || options.descriptor < 0) {
-            options.descriptor = DEFAULT_DESCRIPTOR_MODE;
+          options.descriptor = DESCRIPTOR_TYPE(atoi(argv[i]));
+          if (options.descriptor > GSURF_EXTENDED || options.descriptor < SURF_UPRIGHT) {
+            options.descriptor = MSURF;
           }
         }
       }
@@ -208,16 +205,6 @@ int parse_input_options(KAZEOptions& options, std::string& img_path,
           options.save_scale_space = (bool)atoi(argv[i]);
         }
       }
-      else if (!strcmp(argv[i],"--show_results")) {
-        i = i+1;
-        if (i >= argc) {
-          cerr << "Error introducing input options!!" << endl;
-          return -1;
-        }
-        else {
-          options.show_results = (bool)atoi(argv[i]);
-        }
-      }
       else if (!strcmp(argv[i],"--use_fed")) {
         i = i+1;
         if (i >= argc) {
@@ -226,26 +213,6 @@ int parse_input_options(KAZEOptions& options, std::string& img_path,
         }
         else {
           options.use_fed = (bool)atoi(argv[i]);
-        }
-      }
-      else if (!strcmp(argv[i],"--upright")) {
-        i = i+1;
-        if (i >= argc) {
-          cerr << "Error introducing input options!!" << endl;
-          return -1;
-        }
-        else {
-          options.upright = (bool)atoi(argv[i]);
-        }
-      }
-      else if (!strcmp(argv[i],"--extended")) {
-        i = i+1;
-        if (i >= argc) {
-          cerr << "Error introducing input options!!" << endl;
-          return -1;
-        }
-        else {
-          options.extended = (bool)atoi(argv[i]);
         }
       }
       else if (!strcmp(argv[i],"--verbose")) {

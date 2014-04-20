@@ -273,45 +273,42 @@ int main(int argc, char *argv[]) {
                ninliers_kaze,ratio_kaze,DRATIO,2);
 
   /* ************************************************************************* */
-
   // Show matching statistics
-  if (options.show_results == true) {
-    cout << endl;
-    cout << "SIFT Results" << endl;
-    cout << "**************************************" << endl;
-    cout << "Number of Keypoints Image 1: " << nkpts_sift1 << endl;
-    cout << "Number of Keypoints Image 2: " << nkpts_sift2 << endl;
-    cout << "Number of Matches: " << nmatches_sift << endl;
-    cout << "Number of Inliers: " << ninliers_sift << endl;
-    cout << "Number of Outliers: " << noutliers_sift << endl;
-    cout << "Inliers Ratio: " << ratio_sift << endl;
-    cout << "SIFT Features Extraction Time (ms): " << tsift << endl << endl;
+  cout << endl;
+  cout << "SIFT Results" << endl;
+  cout << "**************************************" << endl;
+  cout << "Number of Keypoints Image 1: " << nkpts_sift1 << endl;
+  cout << "Number of Keypoints Image 2: " << nkpts_sift2 << endl;
+  cout << "Number of Matches: " << nmatches_sift << endl;
+  cout << "Number of Inliers: " << ninliers_sift << endl;
+  cout << "Number of Outliers: " << noutliers_sift << endl;
+  cout << "Inliers Ratio: " << ratio_sift << endl;
+  cout << "SIFT Features Extraction Time (ms): " << tsift << endl << endl;
 
-    cout << "SURF Results" << endl;
-    cout << "**************************************" << endl;
-    cout << "Number of Keypoints Image 1: " << nkpts_surf1 << endl;
-    cout << "Number of Keypoints Image 2: " << nkpts_surf2 << endl;
-    cout << "Number of Matches: " << nmatches_surf << endl;
-    cout << "Number of Inliers: " << ninliers_surf << endl;
-    cout << "Number of Outliers: " << noutliers_surf << endl;
-    cout << "Inliers Ratio: " << ratio_surf << endl;
-    cout << "SURF Features Extraction Time (ms): " << tsurf << endl << endl;
+  cout << "SURF Results" << endl;
+  cout << "**************************************" << endl;
+  cout << "Number of Keypoints Image 1: " << nkpts_surf1 << endl;
+  cout << "Number of Keypoints Image 2: " << nkpts_surf2 << endl;
+  cout << "Number of Matches: " << nmatches_surf << endl;
+  cout << "Number of Inliers: " << ninliers_surf << endl;
+  cout << "Number of Outliers: " << noutliers_surf << endl;
+  cout << "Inliers Ratio: " << ratio_surf << endl;
+  cout << "SURF Features Extraction Time (ms): " << tsurf << endl << endl;
 
-    cout << "KAZE Results" << endl;
-    cout << "**************************************" << endl;
-    cout << "Number of Keypoints Image 1: " << nkpts_kaze1 << endl;
-    cout << "Number of Keypoints Image 2: " << nkpts_kaze2 << endl;
-    cout << "Number of Matches: " << nmatches_kaze << endl;
-    cout << "Number of Inliers: " << ninliers_kaze << endl;
-    cout << "Number of Outliers: " << noutliers_kaze << endl;
-    cout << "Inliers Ratio: " << ratio_kaze << endl;
-    cout << "KAZE Features Extraction Time (ms): " << tkaze << endl;
+  cout << "KAZE Results" << endl;
+  cout << "**************************************" << endl;
+  cout << "Number of Keypoints Image 1: " << nkpts_kaze1 << endl;
+  cout << "Number of Keypoints Image 2: " << nkpts_kaze2 << endl;
+  cout << "Number of Matches: " << nmatches_kaze << endl;
+  cout << "Number of Inliers: " << ninliers_kaze << endl;
+  cout << "Number of Outliers: " << noutliers_kaze << endl;
+  cout << "Inliers Ratio: " << ratio_kaze << endl;
+  cout << "KAZE Features Extraction Time (ms): " << tkaze << endl;
 
-    cv::imshow("SIFT",img_com_sift);
-    cv::imshow("SURF",img_com_surf);
-    cv::imshow("KAZE",img_com_kaze);
-    cv::waitKey(0);
-  }
+  cv::imshow("SIFT",img_com_sift);
+  cv::imshow("SURF",img_com_surf);
+  cv::imshow("KAZE",img_com_kaze);
+  cv::waitKey(0);
 }
 
 /* ************************************************************************* */
@@ -402,10 +399,9 @@ int parse_input_options(KAZEOptions& options, std::string& img_path1, std::strin
           return -1;
         }
         else {
-          options.descriptor = atoi(argv[i]);
-
-          if (options.descriptor > 2 || options.descriptor < 0) {
-            options.descriptor = DEFAULT_DESCRIPTOR_MODE;
+          options.descriptor = DESCRIPTOR_TYPE(atoi(argv[i]));
+          if (options.descriptor > GSURF_EXTENDED || options.descriptor < SURF_UPRIGHT) {
+            options.descriptor = MSURF;
           }
         }
       }
@@ -419,16 +415,6 @@ int parse_input_options(KAZEOptions& options, std::string& img_path1, std::strin
           options.save_scale_space = (bool)atoi(argv[i]);
         }
       }
-      else if (!strcmp(argv[i],"--show_results")) {
-        i = i+1;
-        if (i >= argc) {
-          cout << "Error introducing input options!!" << endl;
-          return -1;
-        }
-        else {
-          options.show_results = (bool)atoi(argv[i]);
-        }
-      }
       else if (!strcmp(argv[i],"--use_fed")) {
         i = i+1;
         if (i >= argc) {
@@ -437,26 +423,6 @@ int parse_input_options(KAZEOptions& options, std::string& img_path1, std::strin
         }
         else {
           options.use_fed = (bool)atoi(argv[i]);
-        }
-      }
-      else if (!strcmp(argv[i],"--upright")) {
-        i = i+1;
-        if (i >= argc) {
-          cout << "Error introducing input options!!" << endl;
-          return -1;
-        }
-        else {
-          options.upright = (bool)atoi(argv[i]);
-        }
-      }
-      else if (!strcmp(argv[i],"--extended")) {
-        i = i+1;
-        if (i >= argc) {
-          cout << "Error introducing input options!!" << endl;
-          return -1;
-        }
-        else {
-          options.extended = (bool)atoi(argv[i]);
         }
       }
       else if (!strcmp(argv[i],"--verbose")) {
