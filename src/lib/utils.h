@@ -6,33 +6,23 @@
  * @author Pablo F. Alcantarilla
  */
 
-#ifndef UTILS_H_
-#define UTILS_H_
+#pragma once
 
-//******************************************************************************
-//******************************************************************************
-
-// OPENCV Includes
-#include <cv.h>
-#include <highgui.h>
-#include <cvaux.h>
-#include <ml.h>
+/* ************************************************************************* */
+// OpenCV Includes
+#include <opencv2/opencv.hpp>
+#include <opencv2/features2d/features2d.hpp>
+#include <opencv2/core/core.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
 
 // System Includes
-#include <stdlib.h>
 #include <stdio.h>
-#include <string.h>
+#include <string>
 #include <cstdlib>
 #include <string>
 #include <vector>
-#include <fstream>
-#include <assert.h>
-#include <math.h>
 
-//*************************************************************************************
-//*************************************************************************************
-
-// Declaration of Functions
+/* ************************************************************************* */
 void compute_min_32F(const cv::Mat& src, float& value);
 void compute_max_32F(const cv::Mat& src, float& value);
 void convert_scale(cv::Mat& src);
@@ -55,8 +45,3 @@ void read_homography(const std::string& homography_path, cv::Mat& H1toN);
 void show_input_options_help(int example);
 void display_text(cv::Mat& img_rgb, int npoints1, int npoints2, int nmatches,
                   int ninliers, float ratio, float dratio, int index);
-
-//*************************************************************************************
-//*************************************************************************************
-
-#endif // UTILS_H_

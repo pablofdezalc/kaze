@@ -21,12 +21,13 @@
 
 #include "utils.h"
 
+// System
+#include <fstream>
+
 using namespace std;
 using namespace cv;
 
-//*************************************************************************************
-//*************************************************************************************
-
+/* ************************************************************************* */
 /**
  * @brief This function computes the minimum value of a float image
  * @param src Input image
@@ -47,9 +48,7 @@ void compute_min_32F(const cv::Mat& src, float& value) {
   value = aux;
 }
 
-//*************************************************************************************
-//*************************************************************************************
-
+/* ************************************************************************* */
 /**
  * @brief This function computes the maximum value of a float image
  * @param src Input image
@@ -70,9 +69,7 @@ void compute_max_32F(const cv::Mat& src, float& value) {
   value = aux;
 }
 
-//*************************************************************************************
-//*************************************************************************************
-
+/* ************************************************************************* */
 /**
  * @brief This function converts the scale of the input image prior to visualization
  * @param src Input/Output image
@@ -90,9 +87,7 @@ void convert_scale(cv::Mat& src) {
   src = src / max_val;
 }
 
-//*************************************************************************************
-//*************************************************************************************
-
+/* ************************************************************************* */
 /**
  * @brief This function copies the input image and converts the scale of the copied
  * image prior visualization
@@ -112,16 +107,14 @@ void copy_and_convert_scale(const cv::Mat& src, cv::Mat& dst) {
   dst = dst / max_val;
 }
 
-//*************************************************************************************
-//*************************************************************************************
-
+/* ************************************************************************* */
 /**
  * @brief This function draws a vector of Ipoints
  * @param img Input/Output Image
  * @param dst Vector of keypoints
  */
-void draw_keypoints(cv::Mat& img, const std::vector<cv::KeyPoint>& kpts)
-{
+void draw_keypoints(cv::Mat& img, const std::vector<cv::KeyPoint>& kpts) {
+
   int x = 0, y = 0;
   float s = 0.0;
 
@@ -137,9 +130,7 @@ void draw_keypoints(cv::Mat& img, const std::vector<cv::KeyPoint>& kpts)
   }
 }
 
-//*************************************************************************************
-//*************************************************************************************
-
+/* ************************************************************************* */
 /**
  * @brief  This function saves the interest points to a regular ASCII file
  * @note The format is compatible with Mikolajczy and Schmid evaluation
@@ -210,9 +201,7 @@ int save_keypoints(std::string& keypointsFile, const std::vector<cv::KeyPoint>& 
   return 1;
 }
 
-//*******************************************************************************
-//*******************************************************************************
-
+/* ************************************************************************* */
 /**
  * @brief This function converts matches to points using nearest neighbor distance
  * ratio matching strategy
@@ -239,9 +228,7 @@ void matches2points_nndr(const std::vector<cv::KeyPoint>& train, const std::vect
   }
 }
 
-//*******************************************************************************
-//*******************************************************************************
-
+/* ************************************************************************* */
 /**
  * @brief This function computes the set of inliers estimating the fundamental matrix
  * or a planar homography in a RANSAC procedure
@@ -278,9 +265,7 @@ void compute_inliers_ransac(const std::vector<cv::Point2f> &matches, std::vector
   }
 }
 
-//*************************************************************************************
-//*************************************************************************************
-
+/* ************************************************************************* */
 /**
  * @brief This function computes the set of inliers given a ground truth homography
  * @param matches Vector of putative matches
@@ -329,9 +314,7 @@ void compute_inliers_homography(const std::vector<cv::Point2f> &matches,
   }
 }
 
-//*******************************************************************************
-//*******************************************************************************
-
+/* ************************************************************************* */
 /**
  * @brief This function draws the set of the inliers between the two images
  * @param img1 First image
@@ -382,9 +365,7 @@ void draw_inliers(const cv::Mat &img1, const cv::Mat &img2, cv::Mat &img_com,
   }
 }
 
-//*******************************************************************************
-//*******************************************************************************
-
+/* ************************************************************************* */
 /**
  * @brief This function draws the set of the inliers between the two images
  * @param img1 First image
@@ -445,9 +426,7 @@ void draw_inliers(const cv::Mat& img1, const cv::Mat& img2, cv::Mat& img_com,
   }
 }
 
-//*************************************************************************************
-//*************************************************************************************
-
+/* ************************************************************************* */
 /**
  * @brief Function for reading the ground truth homography from a txt file
  * @param homography_file Path for the file that contains the ground truth homography
@@ -495,9 +474,7 @@ void read_homography(const std::string& homography_path, cv::Mat& H1toN) {
   H1toN.at<float>(2,2) = h33 / h33;
 }
 
-//*************************************************************************************
-//*************************************************************************************
-
+/* ************************************************************************* */
 /**
  * @brief This function shows the possible command line configuration options
  */
@@ -540,9 +517,7 @@ void show_input_options_help(int example) {
   cout << endl;
 }
 
-//*************************************************************************************
-//*************************************************************************************
-
+/* ************************************************************************* */
 /**
  * @brief This function displays text in the image with the matching statistics
  */
