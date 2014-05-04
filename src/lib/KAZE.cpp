@@ -2548,7 +2548,7 @@ void KAZE::Thomas(const cv::Mat &a, const cv::Mat &b, const cv::Mat &Ld, cv::Mat
 /**
  * @brief This method saves the nonlinear scale space into jpg images
 */
-void KAZE::Save_Nonlinear_Scale_Space(void) {
+void KAZE::Save_Scale_Space() {
 
   Mat img_aux;
   char outputFile[500];

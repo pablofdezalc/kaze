@@ -1,11 +1,9 @@
 //
 //=============================================================================
-// MEX Compilation example (with OpenCV 2.4.8):
-// mex kaze.cpp -I '..\src\lib\' -L'..\build\lib\Release\'
-// -I'c:\files\libs\opencv\build\include' -L'c:\files\libs\opencv\build\x64\vc10\lib'
-// -lopencv_calib3d248 -lopencv_contrib248 -lopencv_core248 -lopencv_highgui248
-// -lopencv_imgproc248 -lAKAZE
-//
+// MEX compilation example in Linux (with OpenCV 2.4.8):
+// mex kaze.cpp -I'../src/lib/' -L'../build/lib/' -I'/usr/local/include/opencv2/'
+// -L'/usr/local/lib/' -lKAZE -lopencv_calib3d -lopencv_contrib -lopencv_core
+// -lopencv_highgui -lopencv_imgproc -lgomp
 //=============================================================================
 //
 // KAZE features MEX wrapper
@@ -248,8 +246,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
   }
   // Summarize the computation times.
   if (options.verbosity) {
-    evolution.Show_Computation_Times();
-    evolution.Save_Scale_Space();
     mexPrintf("Number of points: %d\n", kpts.size());
     mexPrintf("Time Conversion uint8->float: %.2f ms.\n", tcvt);
     mexPrintf("Time Detector: %.2f ms.\n", tdet);

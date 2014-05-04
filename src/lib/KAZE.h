@@ -77,7 +77,7 @@ public:
   void Compute_Descriptors(std::vector<cv::KeyPoint>& kpts, cv::Mat& desc);
 
   /// Methods for saving the scale space set of images and detector responses
-  void Save_Nonlinear_Scale_Space();
+  void Save_Scale_Space();
   void Save_Detector_Responses();
   void Save_Flow_Responses();
 
