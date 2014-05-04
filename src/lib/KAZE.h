@@ -74,7 +74,7 @@ public:
   void Allocate_Memory_Evolution(void);
   int Create_Nonlinear_Scale_Space(const cv::Mat& img);
   void Feature_Detection(std::vector<cv::KeyPoint>& kpts);
-  void Feature_Description(std::vector<cv::KeyPoint>& kpts, cv::Mat& desc);
+  void Compute_Descriptors(std::vector<cv::KeyPoint>& kpts, cv::Mat& desc);
 
   /// Methods for saving the scale space set of images and detector responses
   void Save_Nonlinear_Scale_Space();
@@ -101,27 +101,27 @@ private:
   /// Feature Description methods
   void Compute_Main_Orientation(cv::KeyPoint& kpt);
 
-  /// Descriptor Mode -> 0 SURF 64
+  /// SURF Rectangular Grid 64
   void Get_SURF_Upright_Descriptor_64(const cv::KeyPoint& kpt, float* desc);
   void Get_SURF_Descriptor_64(const cv::KeyPoint& kpt, float* desc);
 
-  /// Descriptor Mode -> 0 SURF 128
+  /// SURF Rectangular Grid 128
   void Get_SURF_Upright_Descriptor_128(const cv::KeyPoint& kpt, float* desc);
   void Get_SURF_Descriptor_128(const cv::KeyPoint& kpt, float* desc);
 
-  /// Descriptor Mode -> 1 M-SURF 64
+  /// M-SURF Rectangular Grid 64
   void Get_MSURF_Upright_Descriptor_64(const cv::KeyPoint& kpt, float* desc);
   void Get_MSURF_Descriptor_64(const cv::KeyPoint& kpt, float* desc);
 
-  /// Descriptor Mode -> 1 M-SURF 128
+  /// M-SURF Rectangular Grid 128
   void Get_MSURF_Upright_Descriptor_128(const cv::KeyPoint& kpt, float* desc);
   void Get_MSURF_Descriptor_128(const cv::KeyPoint& kpt, float *desc);
 
-  /// Descriptor Mode -> 2 G-SURF 64
+  /// G-SURF Rectangular Grid 64
   void Get_GSURF_Upright_Descriptor_64(const cv::KeyPoint& kpt, float* desc);
   void Get_GSURF_Descriptor_64(const cv::KeyPoint& kpt, float *desc);
 
-  /// Descriptor Mode -> 2 G-SURF 128
+  /// Descriptor Mode -> 2 G-SURF Rectangular Grid 128
   void Get_GSURF_Upright_Descriptor_128(const cv::KeyPoint& kpt, float* desc);
   void Get_GSURF_Descriptor_128(const cv::KeyPoint& kpt, float* desc);
 

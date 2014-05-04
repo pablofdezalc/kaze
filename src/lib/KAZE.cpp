@@ -608,7 +608,7 @@ void KAZE::Feature_Suppression_Distance(std::vector<cv::KeyPoint>& kpts, const f
  * @param kpts Vector of keypoints
  * @param desc Matrix with the feature descriptors
 */
-void KAZE::Feature_Description(std::vector<cv::KeyPoint> &kpts, cv::Mat &desc) {
+void KAZE::Compute_Descriptors(std::vector<cv::KeyPoint> &kpts, cv::Mat &desc) {
 
   double t2 = 0.0, t1 = 0.0;
   t1 = getTickCount();

@@ -71,7 +71,7 @@ int main(int argc, char* argv[]) {
   cv::Mat desc;
 
   evolution.Feature_Detection(kpts);
-  evolution.Feature_Description(kpts,desc);
+  evolution.Compute_Descriptors(kpts,desc);
 
   // Save the nonlinear scale space images
   if (options.save_scale_space == true) {

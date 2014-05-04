@@ -227,7 +227,7 @@ int main(int argc, char *argv[]) {
   // and perform feature detection and description for image 1
   evolution1.Create_Nonlinear_Scale_Space(img1_32);
   evolution1.Feature_Detection(kpts_kaze1);
-  evolution1.Feature_Description(kpts_kaze1,desc_kaze1);
+  evolution1.Compute_Descriptors(kpts_kaze1,desc_kaze1);
 
   // Create the second KAZE object
   options.img_width = img2.cols;
@@ -236,7 +236,7 @@ int main(int argc, char *argv[]) {
 
   evolution2.Create_Nonlinear_Scale_Space(img2_32);
   evolution2.Feature_Detection(kpts_kaze2);
-  evolution2.Feature_Description(kpts_kaze2,desc_kaze2);
+  evolution2.Compute_Descriptors(kpts_kaze2,desc_kaze2);
 
   t2 = cv::getTickCount();
   tkaze = 1000.0*(t2-t1) / cv::getTickFrequency();
