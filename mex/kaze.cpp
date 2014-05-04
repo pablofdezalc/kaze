@@ -1,7 +1,10 @@
 //
 //=============================================================================
 // MEX Compilation example (with OpenCV 2.4.8):
-// mex kaze.cpp -I '..\src\lib\' -L'..\build\lib\Release\' -I'c:\files\libs\opencv\build\include' -L'c:\files\libs\opencv\build\x64\vc10\lib' -lopencv_calib3d248 -lopencv_contrib248 -lopencv_core248 -lopencv_highgui248 -lopencv_imgproc248 -lAKAZE
+// mex kaze.cpp -I '..\src\lib\' -L'..\build\lib\Release\'
+// -I'c:\files\libs\opencv\build\include' -L'c:\files\libs\opencv\build\x64\vc10\lib'
+// -lopencv_calib3d248 -lopencv_contrib248 -lopencv_core248 -lopencv_highgui248
+// -lopencv_imgproc248 -lAKAZE
 //
 //=============================================================================
 //
@@ -58,18 +61,17 @@ void show_input_options_help() {
   mexPrintf("descriptor - Descriptor Type. Possible values:\n");
   mexPrintf(" 0 -> SURF_UPRIGHT\n");
   mexPrintf(" 1 -> SURF\n");
-  mexPrintf(" 2 -> M-SURF_UPRIGHT,\n");
-  mexPrintf(" 3 -> M-SURF\n");
-  mexPrintf(" 4 -> M-LDB_UPRIGHT\n");
-  mexPrintf(" 5 -> M-LDB (default)\n");
+  mexPrintf(" 2 -> SURF_EXTENDED_UPRIGHT,\n");
+  mexPrintf(" 3 -> SURF_EXTENDED\n");
+  mexPrintf(" 4 -> MSURF_UPRIGHT\n");
+  mexPrintf(" 5 -> MSURF (default)\n");
+  mexPrintf(" 6 -> MSURF_EXTENDED_UPRIGHT\n");
+  mexPrintf(" 7 -> MSURF_EXTENDED\n");
+  mexPrintf(" 8 -> GSURF_UPRIGHT,\n");
+  mexPrintf(" 9 -> GSURF\n");
+  mexPrintf(" 10 -> GSURF_EXTENDED_UPRIGHT\n");
+  mexPrintf(" 11 -> GSURF_EXTENDED\n");
 
-  mexPrintf("descriptor_channels - Descriptor Channels for M-LDB. Valid values: \n");
-  mexPrintf(" 1 -> intensity\n");
-  mexPrintf(" 2 -> intensity + gradient magnitude\n");
-  mexPrintf(" 3 -> intensity + X and Y gradients (default)\n");
-
-  mexPrintf("descriptor_size - Descriptor size for M-LDB in bits.\n");
-  mexPrintf(" 0: means the full length descriptor (486) (default=0)\n");
   mexPrintf("\nMisc:\n");
   mexPrintf("verbose - Verbose mode. Prints calculation times and stores scale space images in ..\\output\\ folder (if exists)\n\n");
 }
@@ -125,8 +127,8 @@ int parse_input_options(KAZEOptions& options, int nrhs, const mxArray *prhs[]) {
       if (!strcmp(param_name, "descriptor")) {
         options.descriptor = (DESCRIPTOR_TYPE)(mxGetScalar(prhs[i+1]));
         continue;
-        if (options.descriptor < 0 || options.descriptor > MLDB) {
-          options.descriptor = MLDB;
+        if (options.descriptor < 0 || options.descriptor > GSURF_EXTENDED) {
+          options.descriptor = MSURF;
         }
       }
 
