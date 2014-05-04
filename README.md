@@ -1,13 +1,19 @@
 
 ## README - KAZE Features
 
-Version: 1.6.0
-Date: 23-11-2013
+Version: 1.7.0
+Date: 04-05-2014
 
 You can get the latest version of the code from github:
 `https://github.com/pablofdezalc/kaze`
 
 ## CHANGELOG
+Version: 1.7.0
+Changes:
+- KAZEConfig.h added, now all the configuration options are defined in this file
+- New descriptors interface using DESCRIPTOR_TYPE
+- Matlab mex interface added
+
 Version: 1.6.0
 Changes:
 - Code style has been changed substantially to match portability with other libraries
