@@ -1,4 +1,3 @@
-
 /**
  * @file KAZEConfig.h
  * @brief KAZE configuration file
@@ -94,17 +93,15 @@ struct KAZEOptions {
 /* ************************************************************************* */
 /// KAZE nonlinear diffusion filtering evolution
 struct TEvolution {
-  cv::Mat Lx, Ly;	// First order spatial derivatives
-  cv::Mat Lxx, Lxy, Lyy;	// Second order spatial derivatives
-  cv::Mat Lflow;	// Diffusivity image
-  cv::Mat Lt;	// Evolution image
-  cv::Mat Lsmooth; // Smoothed image
-  cv::Mat Lstep; // Evolution step update
-  cv::Mat Ldet; // Detector response
-  float etime;	// Evolution time
-  float esigma;	// Evolution sigma. For linear diffusion t = sigma^2 / 2
-  float octave;	// Image octave
-  float sublevel;	// Image sublevel in each octave
-  int sigma_size;	// Integer esigma. For computing the feature detector responses
+  cv::Mat Lx, Ly;           ///< First order spatial derivatives
+  cv::Mat Lxx, Lxy, Lyy;	///< Second order spatial derivatives
+  cv::Mat Lt;               ///< Evolution image
+  cv::Mat Lsmooth;          ///< Smoothed image
+  cv::Mat Ldet;             ///< Detector response
+  float etime;              ///< Evolution time
+  float esigma;             ///< Evolution sigma. For linear diffusion t = sigma^2 / 2
+  int octave;               ///< Image octave
+  int sublevel;             ///< Image sublevel in each octave
+  int sigma_size;           ///< Integer esigma. For computing the feature detector responses
 };
 

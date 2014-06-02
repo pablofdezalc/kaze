@@ -76,7 +76,6 @@ int main(int argc, char* argv[]) {
   // Save the nonlinear scale space images
   if (options.save_scale_space == true) {
     evolution.Save_Scale_Space();
-    evolution.Save_Flow_Responses();
   }
 
   KAZETiming timing = evolution.Get_Computation_Times();

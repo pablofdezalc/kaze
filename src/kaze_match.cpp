@@ -96,7 +96,6 @@ int main( int argc, char *argv[] ) {
   options.img_width = img1.cols;
   options.img_height = img1.rows;
 
-  cout << "width: " << options.img_width << " height: "  << options.img_height << endl;
   KAZE evolution1(options);
 
   t1 = cv::getTickCount();

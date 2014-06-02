@@ -1,4 +1,3 @@
-
 /**
  * @file KAZE.h
  * @brief Main program for detecting and computing descriptors in a nonlinear
@@ -79,7 +78,6 @@ public:
   /// Methods for saving the scale space set of images and detector responses
   void Save_Scale_Space();
   void Save_Detector_Responses();
-  void Save_Flow_Responses();
 
 private:
 

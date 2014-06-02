@@ -61,16 +61,14 @@ void KAZE::Allocate_Memory_Evolution(void) {
     for (int j = 0; j <= options_.nsublevels-1; j++) {
 
       TEvolution aux;
-      aux.Lx  = cv::Mat::zeros(options_.img_height,options_.img_width,CV_32F);
-      aux.Ly  = cv::Mat::zeros(options_.img_height,options_.img_width,CV_32F);
-      aux.Lxx = cv::Mat::zeros(options_.img_height,options_.img_width,CV_32F);
-      aux.Lxy = cv::Mat::zeros(options_.img_height,options_.img_width,CV_32F);
-      aux.Lyy = cv::Mat::zeros(options_.img_height,options_.img_width,CV_32F);
-      aux.Lflow = cv::Mat::zeros(options_.img_height,options_.img_width,CV_32F);
-      aux.Lt  = cv::Mat::zeros(options_.img_height,options_.img_width,CV_32F);
-      aux.Lsmooth = cv::Mat::zeros(options_.img_height,options_.img_width,CV_32F);
-      aux.Lstep = cv::Mat::zeros(options_.img_height,options_.img_width,CV_32F);
-      aux.Ldet = cv::Mat::zeros(options_.img_height,options_.img_width,CV_32F);
+      aux.Lx  = cv::Mat::zeros(options_.img_height, options_.img_width, CV_32F);
+      aux.Ly  = cv::Mat::zeros(options_.img_height, options_.img_width, CV_32F);
+      aux.Lxx = cv::Mat::zeros(options_.img_height, options_.img_width, CV_32F);
+      aux.Lxy = cv::Mat::zeros(options_.img_height, options_.img_width, CV_32F);
+      aux.Lyy = cv::Mat::zeros(options_.img_height, options_.img_width, CV_32F);
+      aux.Lt  = cv::Mat::zeros(options_.img_height, options_.img_width, CV_32F);
+      aux.Lsmooth = cv::Mat::zeros(options_.img_height, options_.img_width, CV_32F);
+      aux.Ldet = cv::Mat::zeros(options_.img_height, options_.img_width, CV_32F);
       aux.esigma = options_.soffset*pow((float)2.0,(float)(j)/(float)(options_.nsublevels) + i);
       aux.etime = 0.5*(aux.esigma*aux.esigma);
       aux.sigma_size = fRound(aux.esigma);
@@ -106,7 +104,6 @@ void KAZE::Allocate_Memory_Evolution(void) {
     qr_ = cv::Mat::zeros(options_.img_height-1,options_.img_width,CV_32F);
     qc_ = cv::Mat::zeros(options_.img_height,options_.img_width-1,CV_32F);
   }
-
 }
 
 /* ************************************************************************* */
@@ -129,11 +126,15 @@ int KAZE::Create_Nonlinear_Scale_Space(const cv::Mat& img) {
 
   // Copy the original image to the first level of the evolution
   img.copyTo(evolution_[0].Lt);
-  gaussian_2D_convolution(evolution_[0].Lt,evolution_[0].Lt,0,0,options_.soffset);
-  gaussian_2D_convolution(evolution_[0].Lt,evolution_[0].Lsmooth,0,0,options_.sderivatives);
+  gaussian_2D_convolution(evolution_[0].Lt, evolution_[0].Lt, 0, 0, options_.soffset);
+  gaussian_2D_convolution(evolution_[0].Lt, evolution_[0].Lsmooth, 0, 0, options_.sderivatives);
+
+  // Allocate memory for the flow and step images
+  cv::Mat Lflow = cv::Mat::zeros(evolution_[0].Lt.rows, evolution_[0].Lt.cols, CV_32F);
+  cv::Mat Lstep = cv::Mat::zeros(evolution_[0].Lt.rows, evolution_[0].Lt.cols, CV_32F);
 
   // Firstly compute the kcontrast factor
-  Compute_KContrast(evolution_[0].Lt);
+  Compute_KContrast(img);
 
   t2 = getTickCount();
   timing_.kcontrast = 1000.0*(t2-t1) / getTickFrequency();
@@ -144,28 +145,28 @@ int KAZE::Create_Nonlinear_Scale_Space(const cv::Mat& img) {
   }
 
   // Now generate the rest of evolution levels
-  for ( size_t i = 1; i < evolution_.size(); i++) {
+  for (size_t i = 1; i < evolution_.size(); i++) {
 
     evolution_[i-1].Lt.copyTo(evolution_[i].Lt);
-    gaussian_2D_convolution(evolution_[i-1].Lt,evolution_[i].Lsmooth,0,0,options_.sderivatives);
+    gaussian_2D_convolution(evolution_[i-1].Lt, evolution_[i].Lsmooth, 0, 0, options_.sderivatives);
 
     // Compute the Gaussian derivatives Lx and Ly
-    Scharr(evolution_[i].Lsmooth,evolution_[i].Lx,CV_32F,1,0,1,0,BORDER_DEFAULT);
-    Scharr(evolution_[i].Lsmooth,evolution_[i].Ly,CV_32F,0,1,1,0,BORDER_DEFAULT);
+    Scharr(evolution_[i].Lsmooth, evolution_[i].Lx, CV_32F, 1, 0, 1, 0, BORDER_DEFAULT);
+    Scharr(evolution_[i].Lsmooth, evolution_[i].Ly, CV_32F, 0, 1, 1, 0, BORDER_DEFAULT);
 
     // Compute the conductivity equation
     switch (options_.diffusivity) {
       case PM_G1:
-        pm_g1(evolution_[i].Lx, evolution_[i].Ly, evolution_[i].Lflow, options_.kcontrast);
+        pm_g1(evolution_[i].Lx, evolution_[i].Ly, Lflow, options_.kcontrast);
       break;
       case PM_G2:
-        pm_g2(evolution_[i].Lx, evolution_[i].Ly, evolution_[i].Lflow, options_.kcontrast);
+        pm_g2(evolution_[i].Lx, evolution_[i].Ly, Lflow, options_.kcontrast);
       break;
       case WEICKERT:
-        weickert_diffusivity(evolution_[i].Lx, evolution_[i].Ly, evolution_[i].Lflow, options_.kcontrast);
+        weickert_diffusivity(evolution_[i].Lx, evolution_[i].Ly, Lflow, options_.kcontrast);
       break;
       case CHARBONNIER:
-        charbonnier_diffusivity(evolution_[i].Lx, evolution_[i].Ly, evolution_[i].Lflow, options_.kcontrast);
+        charbonnier_diffusivity(evolution_[i].Lx, evolution_[i].Ly, Lflow, options_.kcontrast);
       break;
       default:
         cerr << "Diffusivity: " << options_.diffusivity << " is not supported" << endl;
@@ -174,12 +175,12 @@ int KAZE::Create_Nonlinear_Scale_Space(const cv::Mat& img) {
     // Perform FED n inner steps
     if (options_.use_fed) {
       for (int j = 0; j < nsteps_[i-1]; j++) {
-        nld_step_scalar(evolution_[i].Lt,evolution_[i].Lflow,evolution_[i].Lstep,tsteps_[i-1][j]);
+        nld_step_scalar(evolution_[i].Lt, Lflow, Lstep, tsteps_[i-1][j]);
       }
     }
     else {
       // Perform the evolution step with AOS
-      AOS_Step_Scalar(evolution_[i].Lt,evolution_[i-1].Lt,evolution_[i].Lflow,
+      AOS_Step_Scalar(evolution_[i].Lt, evolution_[i-1].Lt, Lflow,
                       evolution_[i].etime-evolution_[i-1].etime);
     }
 
@@ -2554,8 +2555,8 @@ void KAZE::Save_Scale_Space() {
   char outputFile[500];
 
   for (size_t i = 0; i < evolution_.size(); i++) {
-    convert_scale(evolution_[i].Lflow);
-    evolution_[i].Lflow.convertTo(img_aux,CV_8U,255.0,0);
+    convert_scale(evolution_[i].Lt);
+    evolution_[i].Lt.convertTo(img_aux,CV_8U,255.0,0);
     sprintf(outputFile,"../../output/images/nl_evolution_%02ld.jpg",i);
     imwrite(outputFile,img_aux);
   }
@@ -2575,24 +2576,6 @@ void KAZE::Save_Detector_Responses(void) {
     convert_scale(evolution_[i].Ldet);
     evolution_[i].Ldet.convertTo(img_aux,CV_8U,255.0,0);
     sprintf(outputFile,"../../output/images/nl_detector_%02ld.jpg",i);
-    imwrite(outputFile,img_aux);
-  }
-}
-
-/* ************************************************************************* */
-/**
- * @brief This method saves the flow diffusivity responsesof the nonlinear scale space
- * into jpg images
-*/
-void KAZE::Save_Flow_Responses(void) {
-
-  Mat img_aux;
-  char outputFile[500];
-
-  for (size_t i = 0; i < evolution_.size(); i++) {
-    convert_scale(evolution_[i].Lflow);
-    evolution_[i].Lflow.convertTo(img_aux,CV_8U,255.0,0);
-    sprintf(outputFile,"../../output/images/flow/flow_%02ld.jpg",i);
     imwrite(outputFile,img_aux);
   }
 }
