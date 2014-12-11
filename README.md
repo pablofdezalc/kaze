@@ -236,6 +236,7 @@ For example, running kaze_compare with the first and third images from the boat 
                ../../datasets/boat/img3.pgm
                ../../datasets/boat/H1to3p
 ```
+```
 SIFT Results
 **************************************
 Number of Keypoints Image 1: 2000
