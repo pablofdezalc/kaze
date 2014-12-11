@@ -2,12 +2,10 @@
 //
 // kaze_compare.cpp
 // Author: Pablo F. Alcantarilla
-// Institution: University d'Auvergne
-// Address: Clermont Ferrand, France
-// Date: 24/10/2012
+// Date: 11/12/2012
 // Email: pablofdezalc@gmail.com
 //
-// KAZE Features Copyright 2012, Pablo F. Alcantarilla
+// KAZE Features Copyright 2014, Pablo F. Alcantarilla
 // All Rights Reserved
 // See LICENSE for the license information
 //=============================================================================
@@ -16,23 +14,22 @@
  * @file kaze_compare.cpp
  * @brief Simple image matching program that compares KAZE against other
  * features implemented in OpenCV such as SIFT and SURF
- * @date Oct 24, 2012
+ * @date Dec 11, 2014
  * @author Pablo F. Alcantarilla
  */
 
-#include "KAZE.h"
+#include "./lib/KAZE.h"
 
-// OpenCV Features Includes
+// OpenCV
 #include <opencv2/features2d/features2d.hpp>
-#include <opencv2/nonfree/features2d.hpp>
-#include <opencv2/nonfree/nonfree.hpp>
+#include <opencv2/xfeatures2d.hpp>
 
 using namespace std;
 
 /* ************************************************************************* */
 // Some image matching options
 const float MAX_H_ERROR = 2.50;	// Maximum error in pixels to accept an inlier
-const float DRATIO = 0.6;		// NNDR Matching value
+const float DRATIO = 0.8;		// NNDR Matching value
 
 /* ************************************************************************* */
 /**
@@ -47,7 +44,6 @@ int parse_input_options(KAZEOptions& options, std::string& img_path1, std::strin
                         std::string& homography_path, int argc, char *argv[]);
 
 /* ************************************************************************* */
-/** Main Function 																	 */
 int main(int argc, char *argv[]) {
 
   KAZEOptions options;
@@ -77,7 +73,6 @@ int main(int argc, char *argv[]) {
   vector<vector<cv::DMatch> > dmatches_surf;
   vector<cv::Point2f> matches_surf, inliers_surf;
   cv::Mat img1_rgb_surf, img2_rgb_surf, img_com_surf;
-  cv::SURF dsurf(10,4,2,false,false);
 
   // KAZE Variables
   cv::Mat desc_kaze1, desc_kaze2;
@@ -97,7 +92,7 @@ int main(int argc, char *argv[]) {
     return -1;
 
   // Read the image, force to be grey scale
-  img1 = cv::imread(img_path1,0);
+  img1 = cv::imread(img_path1, 0);
 
   if (img1.data == NULL) {
     cout << "Error loading image: " << img_path1 << endl;
@@ -105,7 +100,7 @@ int main(int argc, char *argv[]) {
   }
 
   // Read the image, force to be grey scale
-  img2 = cv::imread(img_path2,0);
+  img2 = cv::imread(img_path2, 0);
 
   if (img2.data == NULL) {
     cout << "Error loading image: " << img_path2 << endl;
@@ -113,19 +108,19 @@ int main(int argc, char *argv[]) {
   }
 
   // Convert the images to float
-  img1.convertTo(img1_32,CV_32F,1.0/255.0,0);
-  img2.convertTo(img2_32,CV_32F,1.0/255.0,0);
+  img1.convertTo(img1_32, CV_32F, 1.0/255.0, 0);
+  img2.convertTo(img2_32, CV_32F, 1.0/255.0, 0);
 
   // Color images for results visualization
-  img1_rgb_sift = cv::Mat(cv::Size(img1.cols,img1.rows),CV_8UC3);
-  img2_rgb_sift = cv::Mat(cv::Size(img2.cols,img2.rows),CV_8UC3);
-  img_com_sift = cv::Mat(cv::Size(img1.cols*2,img1.rows),CV_8UC3);
-  img1_rgb_surf = cv::Mat(cv::Size(img1.cols,img1.rows),CV_8UC3);
-  img2_rgb_surf = cv::Mat(cv::Size(img2.cols,img2.rows),CV_8UC3);
-  img_com_surf = cv::Mat(cv::Size(img1.cols*2,img1.rows),CV_8UC3);
-  img1_rgb_kaze = cv::Mat(cv::Size(img1.cols,img1.rows),CV_8UC3);
-  img2_rgb_kaze = cv::Mat(cv::Size(img2.cols,img2.rows),CV_8UC3);
-  img_com_kaze = cv::Mat(cv::Size(img1.cols*2,img1.rows),CV_8UC3);
+  img1_rgb_sift = cv::Mat(cv::Size(img1.cols, img1.rows), CV_8UC3);
+  img2_rgb_sift = cv::Mat(cv::Size(img2.cols, img2.rows), CV_8UC3);
+  img_com_sift = cv::Mat(cv::Size(img1.cols*2, img1.rows), CV_8UC3);
+  img1_rgb_surf = cv::Mat(cv::Size(img1.cols, img1.rows), CV_8UC3);
+  img2_rgb_surf = cv::Mat(cv::Size(img2.cols, img2.rows), CV_8UC3);
+  img_com_surf = cv::Mat(cv::Size(img1.cols*2, img1.rows), CV_8UC3);
+  img1_rgb_kaze = cv::Mat(cv::Size(img1.cols, img1.rows), CV_8UC3);
+  img2_rgb_kaze = cv::Mat(cv::Size(img2.cols, img2.rows), CV_8UC3);
+  img_com_kaze = cv::Mat(cv::Size(img1.cols*2, img1.rows), CV_8UC3);
 
   // Read the homography file
   cv::Mat H;
@@ -133,17 +128,12 @@ int main(int argc, char *argv[]) {
 
   /* ************************************************************************* */
   // Detect SIFT Features
+  cv::Ptr<cv::xfeatures2d::SIFT> sift = cv::xfeatures2d::SIFT::create(2000, 3, 0.004, 10, 1.6);
+
   t1 = cv::getTickCount();
 
-  cv::SIFT dsift(2000,3,0.004,10,1.6);
-  dsift(img1,cv::Mat(),kpts_sift1,desc_sift1,false);
-  dsift(img2,cv::Mat(),kpts_sift2,desc_sift2,false);
-
-  t2 = cv::getTickCount();
-  tsift = 1000.0*(t2-t1) / cv::getTickFrequency();
-
-  nkpts_sift1 = kpts_sift1.size();
-  nkpts_sift2 = kpts_sift2.size();
+  sift->detectAndCompute(img1, cv::Mat(), kpts_sift1, desc_sift1, false);
+  sift->detectAndCompute(img2, cv::Mat(), kpts_sift2, desc_sift2, false);
 
   // Matching Descriptors!!
   matcher_l2->knnMatch(desc_sift1,desc_sift2,dmatches_sift,2);
@@ -152,7 +142,12 @@ int main(int argc, char *argv[]) {
   // Compute Inliers!!
   compute_inliers_homography(matches_sift,inliers_sift,H,MAX_H_ERROR);
 
+  t2 = cv::getTickCount();
+  tsift = 1000.0*(t2-t1) / cv::getTickFrequency();
+
   // Compute the inliers statistics
+  nkpts_sift1 = kpts_sift1.size();
+  nkpts_sift2 = kpts_sift2.size();
   nmatches_sift = matches_sift.size()/2;
   ninliers_sift = inliers_sift.size()/2;
   noutliers_sift = nmatches_sift - ninliers_sift;
@@ -161,40 +156,39 @@ int main(int argc, char *argv[]) {
     ratio_sift = 100.0*((float) ninliers_sift / (float) nmatches_sift);
 
   // Prepare the visualization
-  cv::cvtColor(img1,img1_rgb_sift,CV_GRAY2BGR);
-  cv::cvtColor(img2,img2_rgb_sift,CV_GRAY2BGR);
+  cv::cvtColor(img1, img1_rgb_sift, cv::COLOR_GRAY2BGR);
+  cv::cvtColor(img2, img2_rgb_sift, cv::COLOR_GRAY2BGR);
 
   // Draw the list of detected points
-  draw_keypoints(img1_rgb_sift,kpts_sift1);
-  draw_keypoints(img2_rgb_sift,kpts_sift2);
+  draw_keypoints(img1_rgb_sift, kpts_sift1);
+  draw_keypoints(img2_rgb_sift, kpts_sift2);
 
   // Create the new image with a line showing the correspondences
-  draw_inliers(img1_rgb_sift,img2_rgb_sift,img_com_sift,inliers_sift,0);
-  display_text(img_com_sift,nkpts_sift1,nkpts_sift2,nmatches_sift,
-               ninliers_sift,ratio_sift,DRATIO,0);
+  draw_inliers(img1_rgb_sift, img2_rgb_sift, img_com_sift, inliers_sift, 0);
+  display_text(img_com_sift, nkpts_sift1, nkpts_sift2, nmatches_sift, ninliers_sift, ratio_sift, DRATIO, 0);
 
   /* ************************************************************************* */
   // Detect SURF Features
+  cv::Ptr<cv::xfeatures2d::SURF> surf = cv::xfeatures2d::SURF::create(400, 4, 2, false, false);
+
   t1 = cv::getTickCount();
 
-  dsurf.hessianThreshold = 400.0;
-  dsurf(img1,cv::Mat(),kpts_surf1,desc_surf1,false);
-  dsurf(img2,cv::Mat(),kpts_surf2,desc_surf2,false);
+  surf->detectAndCompute(img1, cv::Mat(), kpts_surf1, desc_surf1, false);
+  surf->detectAndCompute(img2, cv::Mat(), kpts_surf2, desc_surf2, false);
+
+  // Matching Descriptors!!
+  matcher_l2->knnMatch(desc_surf1, desc_surf2, dmatches_surf, 2);
+  matches2points_nndr(kpts_surf1, kpts_surf2, dmatches_surf, matches_surf, DRATIO);
+
+  // Compute Inliers!!
+  compute_inliers_homography(matches_surf, inliers_surf, H, MAX_H_ERROR);
 
   t2 = cv::getTickCount();
   tsurf = 1000.0*(t2-t1) / cv::getTickFrequency();
 
+  // Compute the inliers statistics
   nkpts_surf1 = kpts_surf1.size();
   nkpts_surf2 = kpts_surf2.size();
-
-  // Matching Descriptors!!
-  matcher_l2->knnMatch(desc_surf1,desc_surf2,dmatches_surf,2);
-  matches2points_nndr(kpts_surf1,kpts_surf2,dmatches_surf,matches_surf,DRATIO);
-
-  // Compute Inliers!!
-  compute_inliers_homography(matches_surf,inliers_surf,H,MAX_H_ERROR);
-
-  // Compute the inliers statistics
   nmatches_surf = matches_surf.size()/2;
   ninliers_surf = inliers_surf.size()/2;
   noutliers_surf = nmatches_surf - ninliers_surf;
@@ -203,25 +197,30 @@ int main(int argc, char *argv[]) {
     ratio_surf = 100.0*((float) ninliers_surf / (float) nmatches_surf);
 
   // Prepare the visualization
-  cv::cvtColor(img1,img1_rgb_surf,CV_GRAY2BGR);
-  cv::cvtColor(img2,img2_rgb_surf,CV_GRAY2BGR);
+  cv::cvtColor(img1, img1_rgb_surf, cv::COLOR_GRAY2BGR);
+  cv::cvtColor(img2, img2_rgb_surf, cv::COLOR_GRAY2BGR);
 
   // Draw the list of detected points
-  draw_keypoints(img1_rgb_surf,kpts_surf1);
-  draw_keypoints(img2_rgb_surf,kpts_surf2);
+  draw_keypoints(img1_rgb_surf, kpts_surf1);
+  draw_keypoints(img2_rgb_surf, kpts_surf2);
 
   // Create the new image with a line showing the correspondences
-  draw_inliers(img1_rgb_surf,img2_rgb_surf,img_com_surf,inliers_surf,1);
-  display_text(img_com_surf,nkpts_surf1,nkpts_surf2,nmatches_surf,
-               ninliers_surf,ratio_surf,DRATIO,1);
+  draw_inliers(img1_rgb_surf, img2_rgb_surf, img_com_surf, inliers_surf, 1);
+  display_text(img_com_surf, nkpts_surf1, nkpts_surf2,nmatches_surf,
+               ninliers_surf, ratio_surf, DRATIO, 1);
 
   /* ************************************************************************* */
   // Create the first KAZE object
-  t1 = cv::getTickCount();
-
   options.img_width = img1.cols;
   options.img_height = img1.rows;
-  KAZE evolution1(options);
+  libKAZE::KAZE evolution1(options);
+
+  // Create the second KAZE object
+  options.img_width = img2.cols;
+  options.img_height = img2.rows;
+  libKAZE::KAZE evolution2(options);
+
+  t1 = cv::getTickCount();
 
   // Create the nonlinear scale space
   // and perform feature detection and description for image 1
@@ -229,20 +228,11 @@ int main(int argc, char *argv[]) {
   evolution1.Feature_Detection(kpts_kaze1);
   evolution1.Compute_Descriptors(kpts_kaze1,desc_kaze1);
 
-  // Create the second KAZE object
-  options.img_width = img2.cols;
-  options.img_height = img2.rows;
-  KAZE evolution2(options);
-
+  // Create the nonlinear scale space
+  // and perform feature detection and description for image 2
   evolution2.Create_Nonlinear_Scale_Space(img2_32);
   evolution2.Feature_Detection(kpts_kaze2);
   evolution2.Compute_Descriptors(kpts_kaze2,desc_kaze2);
-
-  t2 = cv::getTickCount();
-  tkaze = 1000.0*(t2-t1) / cv::getTickFrequency();
-
-  nkpts_kaze1 = kpts_kaze1.size();
-  nkpts_kaze2 = kpts_kaze2.size();
 
   // Matching Descriptors!!
   matcher_l2->knnMatch(desc_kaze1,desc_kaze2,dmatches_kaze,2);
@@ -251,7 +241,12 @@ int main(int argc, char *argv[]) {
   // Compute Inliers!!
   compute_inliers_homography(matches_kaze,inliers_kaze,H,MAX_H_ERROR);
 
+  t2 = cv::getTickCount();
+  tkaze = 1000.0*(t2-t1) / cv::getTickFrequency();
+
   // Compute the inliers statistics
+  nkpts_kaze1 = kpts_kaze1.size();
+  nkpts_kaze2 = kpts_kaze2.size();
   nmatches_kaze = matches_kaze.size()/2;
   ninliers_kaze = inliers_kaze.size()/2;
   noutliers_kaze = nmatches_kaze - ninliers_kaze;
@@ -260,12 +255,12 @@ int main(int argc, char *argv[]) {
     ratio_kaze = 100.0*((float) ninliers_kaze / (float) nmatches_kaze);
 
   // Prepare the visualization
-  cv::cvtColor(img1,img1_rgb_kaze,CV_GRAY2BGR);
-  cv::cvtColor(img2,img2_rgb_kaze,CV_GRAY2BGR);
+  cv::cvtColor(img1, img1_rgb_kaze, cv::COLOR_GRAY2BGR);
+  cv::cvtColor(img2, img2_rgb_kaze, cv::COLOR_GRAY2BGR);
 
   // Draw the list of detected points
-  draw_keypoints(img1_rgb_kaze,kpts_kaze1);
-  draw_keypoints(img2_rgb_kaze,kpts_kaze2);
+  draw_keypoints(img1_rgb_kaze, kpts_kaze1);
+  draw_keypoints(img2_rgb_kaze, kpts_kaze2);
 
   // Create the new image with a line showing the correspondences
   draw_inliers(img1_rgb_kaze,img2_rgb_kaze,img_com_kaze,inliers_kaze,2);
@@ -273,7 +268,6 @@ int main(int argc, char *argv[]) {
                ninliers_kaze,ratio_kaze,DRATIO,2);
 
   /* ************************************************************************* */
-  // Show matching statistics
   cout << endl;
   cout << "SIFT Results" << endl;
   cout << "**************************************" << endl;

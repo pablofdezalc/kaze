@@ -2,12 +2,10 @@
 //
 // kaze_match.cpp
 // Author: Pablo F. Alcantarilla
-// Institution: University d'Auvergne
-// Address: Clermont Ferrand, France
-// Date: 22/10/2012
+// Date: 11/12/2012
 // Email: pablofdezalc@gmail.com
 //
-// KAZE Features Copyright 2012, Pablo F. Alcantarilla
+// KAZE Features Copyright 2014, Pablo F. Alcantarilla
 // All Rights Reserved
 // See LICENSE for the license information
 //=============================================================================
@@ -16,19 +14,18 @@
  * @file kaze_match.cpp
  * @brief Main program for matching two images with KAZE features
  * The two images can have different resolutions
- * @date Oct 22, 2012
+ * @date Dec 11, 2014
  * @author Pablo F. Alcantarilla
  */
 
-#include "KAZE.h"
+#include "./lib/KAZE.h"
 
 using namespace std;
 
 /* ************************************************************************* */
 // Some image matching options
-const bool COMPUTE_HOMOGRAPHY = false;	// 0->Use ground truth homography, 1->Estimate homography with RANSAC
-const float MAX_H_ERROR = 5.0;	// Maximum error in pixels to accept an inlier
-const float DRATIO = .60;		// NNDR Matching value
+const float MAX_H_ERROR = 2.50;	// Maximum error in pixels to accept an inlier
+const float DRATIO = .80;		// NNDR Matching value
 
 /* ************************************************************************* */
 /**
@@ -48,7 +45,7 @@ int main( int argc, char *argv[] ) {
 
   KAZEOptions options;
   cv::Mat img1, img1_32, img2, img2_32, img1_rgb, img2_rgb, img_com, img_r;
-  cv::Mat desc1, desc2, H;
+  cv::Mat desc1, desc2, HG;
   string img_path1, img_path2, homography_path;
   float ratio = 0.0, rfactor = .90;
   vector<cv::KeyPoint> kpts1, kpts2;
@@ -60,11 +57,11 @@ int main( int argc, char *argv[] ) {
   double t1 = 0.0, t2 = 0.0, tkaze = 0.0, tmatch = 0.0;
 
   // Parse the input command line options
-  if (parse_input_options(options,img_path1,img_path2,homography_path,argc,argv))
+  if (parse_input_options(options, img_path1, img_path2, homography_path, argc, argv))
     return -1;
 
   // Read the image, force to be grey scale
-  img1 = cv::imread(img_path1,0);
+  img1 = cv::imread(img_path1, 0);
 
   if (img1.data == NULL) {
     cerr << "Error loading image: " << img_path1 << endl;
@@ -72,7 +69,7 @@ int main( int argc, char *argv[] ) {
   }
 
   // Read the image, force to be grey scale
-  img2 = cv::imread(img_path2,0);
+  img2 = cv::imread(img_path2, 0);
 
   if (img2.data == NULL) {
     cout << "Error loading image: " << img_path2 << endl;
@@ -80,23 +77,29 @@ int main( int argc, char *argv[] ) {
   }
 
   // Convert the images to float
-  img1.convertTo(img1_32,CV_32F,1.0/255.0,0);
-  img2.convertTo(img2_32,CV_32F,1.0/255.0,0);
+  img1.convertTo(img1_32, CV_32F, 1.0/255.0, 0);
+  img2.convertTo(img2_32, CV_32F, 1.0/255.0, 0);
 
   // Color images for results visualization
-  img1_rgb = cv::Mat(cv::Size(img1.cols,img1.rows),CV_8UC3);
-  img2_rgb = cv::Mat(cv::Size(img2.cols,img1.rows),CV_8UC3);
-  img_com = cv::Mat(cv::Size(img1.cols*2,img1.rows),CV_8UC3);
-  img_r = cv::Mat(cv::Size(img_com.cols*rfactor,img_com.rows*rfactor),CV_8UC3);
+  img1_rgb = cv::Mat(cv::Size(img1.cols,img1.rows), CV_8UC3);
+  img2_rgb = cv::Mat(cv::Size(img2.cols,img1.rows), CV_8UC3);
+  img_com = cv::Mat(cv::Size(img1.cols*2,img1.rows), CV_8UC3);
+  img_r = cv::Mat(cv::Size(img_com.cols*rfactor, img_com.rows*rfactor), CV_8UC3);
 
-  // Read the homography file
-  read_homography(homography_path,H);
+  // Read ground truth homography file
+  bool use_ransac = false;
+  if (read_homography(homography_path, HG) == false)
+    use_ransac = true;
 
   // Create the first KAZE object
   options.img_width = img1.cols;
   options.img_height = img1.rows;
+  libKAZE::KAZE evolution1(options);
 
-  KAZE evolution1(options);
+  // Create the second KAZE object
+  options.img_width = img2.cols;
+  options.img_height = img2.rows;
+  libKAZE::KAZE evolution2(options);
 
   t1 = cv::getTickCount();
 
@@ -104,16 +107,13 @@ int main( int argc, char *argv[] ) {
   // and perform feature detection and description for image 1
   evolution1.Create_Nonlinear_Scale_Space(img1_32);
   evolution1.Feature_Detection(kpts1);
-  evolution1.Compute_Descriptors(kpts1,desc1);
+  evolution1.Compute_Descriptors(kpts1, desc1);
 
-  // Create the second KAZE object
-  options.img_width = img2.cols;
-  options.img_height = img2.rows;
-  KAZE evolution2(options);
-
+  // Create the nonlinear scale space
+  // and perform feature detection and description for image 2
   evolution2.Create_Nonlinear_Scale_Space(img2_32);
   evolution2.Feature_Detection(kpts2);
-  evolution2.Compute_Descriptors(kpts2,desc2);
+  evolution2.Compute_Descriptors(kpts2, desc2);
 
   t2 = cv::getTickCount();
   tkaze = 1000.0*(t2-t1) / cv::getTickFrequency();
@@ -127,19 +127,17 @@ int main( int argc, char *argv[] ) {
 
   t1 = cv::getTickCount();
 
-  matcher_l2->knnMatch(desc1,desc2,dmatches,2);
-  matches2points_nndr(kpts1,kpts2,dmatches,matches,DRATIO);
+  matcher_l2->knnMatch(desc1, desc2, dmatches,2);
+  matches2points_nndr(kpts1, kpts2, dmatches, matches, DRATIO);
 
   t2 = cv::getTickCount();
   tmatch = 1000.0*(t2-t1) / cv::getTickFrequency();
 
   // Compute Inliers!!
-  if (COMPUTE_HOMOGRAPHY == false) {
-    compute_inliers_homography(matches,inliers,H,MAX_H_ERROR);
-  }
-  else {
-    compute_inliers_ransac(matches,inliers,MAX_H_ERROR,false);
-  }
+  if (use_ransac == false)
+    compute_inliers_homography(matches, inliers, HG, MAX_H_ERROR);
+  else
+    compute_inliers_ransac(matches, inliers, MAX_H_ERROR, false);
 
   // Compute the inliers statistics
   nmatches = matches.size()/2;
@@ -148,16 +146,16 @@ int main( int argc, char *argv[] ) {
   ratio = 100.0*((float) ninliers / (float) nmatches);
 
   // Prepare the visualization
-  cvtColor(img1,img1_rgb,CV_GRAY2BGR);
-  cvtColor(img2,img2_rgb,CV_GRAY2BGR);
+  cvtColor(img1, img1_rgb, cv::COLOR_GRAY2BGR);
+  cvtColor(img2, img2_rgb, cv::COLOR_GRAY2BGR);
 
   // Draw the list of detected points
   draw_keypoints(img1_rgb,kpts1);
   draw_keypoints(img2_rgb,kpts2);
 
   // Create the new image with a line showing the correspondences
-  draw_inliers(img1_rgb,img2_rgb,img_com,inliers);
-  resize(img_com,img_r,cv::Size(img_r.cols,img_r.rows),0,0,CV_INTER_LINEAR);
+  draw_inliers(img1_rgb, img2_rgb, img_com, inliers);
+  cv::resize(img_com, img_r, cv::Size(img_r.cols, img_r.rows), 0, 0, cv::INTER_LINEAR);
 
   // Show matching statistics
   cout << "Number of Keypoints Image 1: " << nkpts1 << endl;
@@ -174,7 +172,6 @@ int main( int argc, char *argv[] ) {
   cv::imshow("Image 2",img2_rgb);
   cv::imshow("Matches",img_com);
   cv::waitKey(0);
-
 }
 
 /* ************************************************************************* */
@@ -196,7 +193,9 @@ int parse_input_options(KAZEOptions& options, std::string& img_path1, std::strin
 
     img_path1 = argv[1];
     img_path2 = argv[2];
-    homography_path = argv[3];
+
+    if (argc >= 4)
+     homography_path = argv[3];
 
     for (int i = 4; i < argc; i++) {
       if (!strcmp(argv[i],"--soffset")) {

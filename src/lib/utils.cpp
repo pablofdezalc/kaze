@@ -1,13 +1,11 @@
 //=============================================================================
 //
 // utils.cpp
-// Author: Pablo F. Alcantarilla
-// Institution: University d'Auvergne
-// Address: Clermont Ferrand, France
-// Date: 29/12/2011
+// Authors: Pablo F. Alcantarilla
+// Date: 11/12/2014
 // Email: pablofdezalc@gmail.com
 //
-// KAZE Features Copyright 2012, Pablo F. Alcantarilla
+// KAZE Features Copyright 2014, Pablo F. Alcantarilla
 // All Rights Reserved
 // See LICENSE for the license information
 //=============================================================================
@@ -15,24 +13,23 @@
 /**
  * @file utils.cpp
  * @brief Some useful functions
- * @date Dec 29, 2011
+ * @date Dec 11, 2014
  * @author Pablo F. Alcantarilla
  */
 
 #include "utils.h"
 
+// OpenCV
+#include <opencv2/opencv.hpp>
+#include <opencv2/features2d/features2d.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+
 // System
 #include <fstream>
 
 using namespace std;
-using namespace cv;
 
 /* ************************************************************************* */
-/**
- * @brief This function computes the minimum value of a float image
- * @param src Input image
- * @param value Minimum value
- */
 void compute_min_32F(const cv::Mat& src, float& value) {
 
   float aux = 1000.0;
@@ -49,11 +46,6 @@ void compute_min_32F(const cv::Mat& src, float& value) {
 }
 
 /* ************************************************************************* */
-/**
- * @brief This function computes the maximum value of a float image
- * @param src Input image
- * @param value Maximum value
- */
 void compute_max_32F(const cv::Mat& src, float& value) {
 
   float aux = 0.0;
@@ -70,79 +62,44 @@ void compute_max_32F(const cv::Mat& src, float& value) {
 }
 
 /* ************************************************************************* */
-/**
- * @brief This function converts the scale of the input image prior to visualization
- * @param src Input/Output image
- * @param value Maximum value
- */
 void convert_scale(cv::Mat& src) {
 
   float min_val = 0, max_val = 0;
-
   compute_min_32F(src,min_val);
-
   src = src - min_val;
-
   compute_max_32F(src,max_val);
   src = src / max_val;
 }
 
 /* ************************************************************************* */
-/**
- * @brief This function copies the input image and converts the scale of the copied
- * image prior visualization
- * @param src Input image
- * @param dst Output image
- */
 void copy_and_convert_scale(const cv::Mat& src, cv::Mat& dst) {
 
   float min_val = 0, max_val = 0;
-
   src.copyTo(dst);
   compute_min_32F(dst,min_val);
-
   dst = dst - min_val;
-
   compute_max_32F(dst,max_val);
   dst = dst / max_val;
 }
 
 /* ************************************************************************* */
-/**
- * @brief This function draws a vector of Ipoints
- * @param img Input/Output Image
- * @param dst Vector of keypoints
- */
 void draw_keypoints(cv::Mat& img, const std::vector<cv::KeyPoint>& kpts) {
 
   int x = 0, y = 0;
-  float s = 0.0;
+  float radius = 0.0;
 
   for (size_t i = 0; i < kpts.size(); i++) {
-
-    x = kpts[i].pt.x;
-    y = kpts[i].pt.y;
-    s = kpts[i].size*.5;
-
-    // Draw a circle centered on the interest point
-    circle(img,cv::Point(x,y),s,CV_RGB(0,0,255),1);
-    circle(img,cv::Point(x,y),1.0,CV_RGB(0,255,0),-1);
+    x = (int)(kpts[i].pt.x+.5);
+    y = (int)(kpts[i].pt.y+.5);
+    radius = kpts[i].size/2.0;
+    cv::circle(img, cv::Point(x,y), radius*2.50, cv::Scalar(0,255,0), 1);
+    cv::circle(img, cv::Point(x,y), 1.0, cv::Scalar(0,0,255), -1);
   }
 }
 
 /* ************************************************************************* */
-/**
- * @brief  This function saves the interest points to a regular ASCII file
- * @note The format is compatible with Mikolajczy and Schmid evaluation
- * @param sFileName Name of the output file where the points will be stored
- * @param kpts Vector of points of interest
- * @param desc Descriptors
- * @param bLaplacian Set to 1 if we want to write the sign of the Laplacian
- * into the descriptor information
- * @param bVerbose Set to 1 for some verbosity information
- */
 int save_keypoints(std::string& keypointsFile, const std::vector<cv::KeyPoint>& kpts,
-                   const cv::Mat &desc, bool bVerbose) {
+                   const cv::Mat& desc, bool bVerbose) {
 
   int length = 0, count = 0;
   float sc = 0.0;
@@ -202,18 +159,9 @@ int save_keypoints(std::string& keypointsFile, const std::vector<cv::KeyPoint>& 
 }
 
 /* ************************************************************************* */
-/**
- * @brief This function converts matches to points using nearest neighbor distance
- * ratio matching strategy
- * @param train Vector of keypoints from the first image
- * @param query Vector of keypoints from the second image
- * @param matches Vector of nearest neighbors for each keypoint
- * @param pmatches Vector of putative matches
- * @param nndr Nearest neighbor distance ratio value
- */
 void matches2points_nndr(const std::vector<cv::KeyPoint>& train, const std::vector<cv::KeyPoint>& query,
                          const std::vector<std::vector<cv::DMatch> >& matches,
-                         std::vector<cv::Point2f>& pmatches, const float& nndr) {
+                         std::vector<cv::Point2f>& pmatches, const float nndr) {
 
   float dist1 = 0.0, dist2 = 0.0;
   for (size_t i = 0; i < matches.size(); i++) {
@@ -229,33 +177,23 @@ void matches2points_nndr(const std::vector<cv::KeyPoint>& train, const std::vect
 }
 
 /* ************************************************************************* */
-/**
- * @brief This function computes the set of inliers estimating the fundamental matrix
- * or a planar homography in a RANSAC procedure
- * @param matches Vector of putative matches
- * @param inliers Vector of inliers
- * @param error The minimum pixelic error to accept an inlier
- * @param use_fund Set to true if you want to compute a fundamental matrix
- */
 void compute_inliers_ransac(const std::vector<cv::Point2f> &matches, std::vector<cv::Point2f> &inliers,
-                            const float& error, const bool& use_fund) {
+                            const float error, const bool use_fund) {
 
-  vector<Point2f> points1, points2;
-  Mat H = Mat::zeros(3,3,CV_32F);
+  vector<cv::Point2f> points1, points2;
+  cv::Mat H = cv::Mat::zeros(3, 3, CV_32F);
   int npoints = matches.size()/2;
-  Mat status = Mat::zeros(npoints,1,CV_8UC1);
+  cv::Mat status = cv::Mat::zeros(npoints, 1, CV_8UC1);
 
   for (size_t i = 0; i < matches.size(); i+=2) {
     points1.push_back(matches[i]);
     points2.push_back(matches[i+1]);
   }
 
-  if (use_fund == true) {
-    H = findFundamentalMat(points1,points2,CV_FM_RANSAC,error,0.99,status);
-  }
-  else {
-    H = findHomography(points1,points2,CV_RANSAC,error,status);
-  }
+  if (use_fund == true)
+    H = cv::findFundamentalMat(points1, points2, cv::FM_RANSAC, error, 0.99, status);
+  else
+    H = cv::findHomography(points1, points2, cv::RANSAC, error, status);
 
   for (int i = 0; i < npoints; i++) {
     if (status.at<unsigned char>(i) == 1) {
@@ -266,15 +204,8 @@ void compute_inliers_ransac(const std::vector<cv::Point2f> &matches, std::vector
 }
 
 /* ************************************************************************* */
-/**
- * @brief This function computes the set of inliers given a ground truth homography
- * @param matches Vector of putative matches
- * @param inliers Vector of inliers
- * @param H Ground truth homography matrix 3x3
- * @param min_error The minimum pixelic error to accept an inlier
- */
-void compute_inliers_homography(const std::vector<cv::Point2f> &matches,
-                                std::vector<cv::Point2f> &inliers, const cv::Mat &H, const float& min_error) {
+void compute_inliers_homography(const std::vector<cv::Point2f>& matches,
+                                std::vector<cv::Point2f>& inliers, const cv::Mat& H, const float min_error) {
 
   float h11 = 0.0, h12 = 0.0, h13 = 0.0;
   float h21 = 0.0, h22 = 0.0, h23 = 0.0;
@@ -315,15 +246,8 @@ void compute_inliers_homography(const std::vector<cv::Point2f> &matches,
 }
 
 /* ************************************************************************* */
-/**
- * @brief This function draws the set of the inliers between the two images
- * @param img1 First image
- * @param img2 Second image
- * @param img_com Image with the inliers
- * @param ptpairs Vector of point pairs with the set of inliers
- */
-void draw_inliers(const cv::Mat &img1, const cv::Mat &img2, cv::Mat &img_com,
-                  const std::vector<cv::Point2f> &ptpairs) {
+void draw_inliers(const cv::Mat& img1, const cv::Mat& img2, cv::Mat& img_com,
+                  const std::vector<cv::Point2f>& ptpairs) {
 
   int x1 = 0, y1 = 0, x2 = 0, y2 = 0;
   float rows1 = 0.0, cols1 = 0.0;
@@ -338,8 +262,8 @@ void draw_inliers(const cv::Mat &img1, const cv::Mat &img2, cv::Mat &img_com,
   vfactor = (float)(rows1)/(float)(rows2);
 
   // This is in case the input images don't have the same resolution
-  Mat img_aux = Mat(Size(img1.cols,img1.rows),CV_8UC3);
-  resize(img2,img_aux,Size(img1.cols,img1.rows),0,0,CV_INTER_LINEAR);
+  cv::Mat img_aux = cv::Mat(cv::Size(img1.cols,img1.rows), CV_8UC3);
+  cv::resize(img2, img_aux, cv::Size(img1.cols,img1.rows), 0, 0, cv::INTER_LINEAR);
 
   for (int i = 0; i < img_com.rows; i++) {
     for (int j = 0; j < img_com.cols; j++) {
@@ -361,19 +285,11 @@ void draw_inliers(const cv::Mat &img1, const cv::Mat &img2, cv::Mat &img_com,
     y1 = (int)(ptpairs[i].y+.5);
     x2 = (int)(ptpairs[i+1].x*ufactor+img1.cols+.5);
     y2 = (int)(ptpairs[i+1].y*vfactor+.5);
-    line(img_com,Point(x1,y1),Point(x2,y2),CV_RGB(255,0,0),2);
+    cv::line(img_com, cv::Point(x1,y1), cv::Point(x2,y2), cv::Scalar(255,0,0),2);
   }
 }
 
 /* ************************************************************************* */
-/**
- * @brief This function draws the set of the inliers between the two images
- * @param img1 First image
- * @param img2 Second image
- * @param img_com Image with the inliers
- * @param ptpairs Vector of point pairs with the set of inliers
- * @param color The color for each method
- */
 void draw_inliers(const cv::Mat& img1, const cv::Mat& img2, cv::Mat& img_com,
                   const std::vector<cv::Point2f>& ptpairs, int color) {
 
@@ -390,8 +306,8 @@ void draw_inliers(const cv::Mat& img1, const cv::Mat& img2, cv::Mat& img_com,
   vfactor = (float)(rows1)/(float)(rows2);
 
   // This is in case the input images don't have the same resolution
-  Mat img_aux = Mat(Size(img1.cols,img1.rows),CV_8UC3);
-  resize(img2,img_aux,Size(img1.cols,img1.rows),0,0,CV_INTER_LINEAR);
+  cv::Mat img_aux = cv::Mat(cv::Size(img1.cols,img1.rows), CV_8UC3);
+  cv::resize(img2, img_aux, cv::Size(img1.cols,img1.rows), 0, 0, cv::INTER_LINEAR);
 
   for (int i = 0; i < img_com.rows; i++) {
     for (int j = 0; j < img_com.cols; j++) {
@@ -414,25 +330,17 @@ void draw_inliers(const cv::Mat& img1, const cv::Mat& img2, cv::Mat& img_com,
     x2 = (int)(ptpairs[i+1].x*ufactor+img1.cols+.5);
     y2 = (int)(ptpairs[i+1].y*vfactor+.5);
 
-    if (color == 0) {
-      line(img_com,Point(x1,y1),Point(x2,y2),CV_RGB(255,255,0),2);
-    }
-    else if (color == 1) {
-      line(img_com,Point(x1,y1),Point(x2,y2),CV_RGB(255,0,0),2);
-    }
-    else if (color == 2) {
-      line(img_com,Point(x1,y1),Point(x2,y2),CV_RGB(0,255,0),2);
-    }
+    if (color == 0)
+      cv::line(img_com, cv::Point(x1,y1), cv::Point(x2,y2), cv::Scalar(255,255,0), 2);
+    else if (color == 1)
+      cv::line(img_com, cv::Point(x1,y1), cv::Point(x2,y2), cv::Scalar(255,0,0), 2);
+    else if (color == 2)
+      cv::line(img_com, cv::Point(x1,y1), cv::Point(x2,y2), cv::Scalar(0,255,0), 2);
   }
 }
 
 /* ************************************************************************* */
-/**
- * @brief Function for reading the ground truth homography from a txt file
- * @param homography_file Path for the file that contains the ground truth homography
- * @param HG Matrix to store the ground truth homography
- */
-void read_homography(const std::string& homography_path, cv::Mat& H1toN) {
+bool read_homography(const std::string& homography_path, cv::Mat& H1toN) {
 
   float h11 = 0.0, h12 = 0.0, h13 = 0.0;
   float h21 = 0.0, h22 = 0.0, h23 = 0.0;
@@ -442,24 +350,25 @@ void read_homography(const std::string& homography_path, cv::Mat& H1toN) {
   string tmp_string;
 
   // Allocate memory for the OpenCV matrices
-  H1toN = Mat::zeros(3,3,CV_32FC1);
+  H1toN = cv::Mat::zeros(3,3,CV_32FC1);
 
-  setlocale(LC_ALL,"C");
+  ifstream pf;
+  pf.exceptions(ifstream::eofbit | ifstream::failbit | ifstream::badbit );
+  pf.open(homography_path.c_str(),ifstream::in);
 
-  ifstream infile;
-  infile.exceptions(ifstream::eofbit | ifstream::failbit | ifstream::badbit );
-  infile.open(homography_path.c_str(),ifstream::in);
+  if (!pf.is_open())
+    return false;
 
-  infile.getline(tmp_buf,tmp_buf_size);
+  pf.getline(tmp_buf, tmp_buf_size);
   sscanf(tmp_buf,"%f %f %f",&h11,&h12,&h13);
 
-  infile.getline(tmp_buf,tmp_buf_size);
+  pf.getline(tmp_buf, tmp_buf_size);
   sscanf(tmp_buf,"%f %f %f",&h21,&h22,&h23);
 
-  infile.getline(tmp_buf,tmp_buf_size);
+  pf.getline(tmp_buf, tmp_buf_size);
   sscanf(tmp_buf,"%f %f %f",&h31,&h32,&h33);
 
-  infile.close();
+  pf.close();
 
   H1toN.at<float>(0,0) = h11 / h33;
   H1toN.at<float>(0,1) = h12 / h33;
@@ -472,12 +381,11 @@ void read_homography(const std::string& homography_path, cv::Mat& H1toN) {
   H1toN.at<float>(2,0) = h31 / h33;
   H1toN.at<float>(2,1) = h32 / h33;
   H1toN.at<float>(2,2) = h33 / h33;
+
+  return true;
 }
 
 /* ************************************************************************* */
-/**
- * @brief This function shows the possible command line configuration options
- */
 void show_input_options_help(int example) {
 
   fflush(stdout);
@@ -518,9 +426,6 @@ void show_input_options_help(int example) {
 }
 
 /* ************************************************************************* */
-/**
- * @brief This function displays text in the image with the matching statistics
- */
 void display_text(cv::Mat& img_rgb, int npoints1, int npoints2, int nmatches,
                   int ninliers, float ratio, float dratio, int index) {
 
@@ -528,37 +433,28 @@ void display_text(cv::Mat& img_rgb, int npoints1, int npoints2, int nmatches,
 
   sprintf(text,"NNDR Matching %.2f",dratio);
 
-  if (index == 0){
-    putText(img_rgb,text,cv::Point(20,30),CV_FONT_HERSHEY_DUPLEX,.75,CV_RGB(255,255,0),2,8,false);
-  }
-  else if (index == 1) {
-    putText(img_rgb,text,cv::Point(20,30),CV_FONT_HERSHEY_DUPLEX,.75,CV_RGB(255,0,0),2,8,false);
-  }
-  else if (index == 2) {
-    putText(img_rgb,text,cv::Point(20,30),CV_FONT_HERSHEY_DUPLEX,.75,CV_RGB(0,255,0),2,8,false);
-  }
+  if (index == 0)
+    putText(img_rgb,text, cv::Point(20,30), cv::FONT_HERSHEY_DUPLEX, .75, cv::Scalar(255,255,0),2,8,false);
+  else if (index == 1)
+    putText(img_rgb,text, cv::Point(20,30), cv::FONT_HERSHEY_DUPLEX, .75, cv::Scalar(255,0,0),2,8,false);
+  else if (index == 2)
+    putText(img_rgb,text, cv::Point(20,30), cv::FONT_HERSHEY_DUPLEX, .75, cv::Scalar(0,255,0),2,8,false);
 
   sprintf(text,"# Points Image 1: %d, # Points Image 2: %d",npoints1,npoints2);
 
-  if (index == 0) {
-    putText(img_rgb,text,Point(20,img_rgb.rows-70),CV_FONT_HERSHEY_DUPLEX,.75,CV_RGB(255,255,0),2,8,false);
-  }
-  else if (index == 1) {
-    putText(img_rgb,text,Point(20,img_rgb.rows-70),CV_FONT_HERSHEY_DUPLEX,.75,CV_RGB(255,0,0),2,8,false);
-  }
-  else if (index == 2) {
-    putText(img_rgb,text,Point(20,img_rgb.rows-70),CV_FONT_HERSHEY_DUPLEX,.75,CV_RGB(0,255,0),2,8,false);
-  }
+  if (index == 0)
+    putText(img_rgb,text, cv::Point(20,img_rgb.rows-70), cv::FONT_HERSHEY_DUPLEX, .75, cv::Scalar(255,255,0),2,8,false);
+  else if (index == 1)
+    putText(img_rgb,text, cv::Point(20,img_rgb.rows-70), cv::FONT_HERSHEY_DUPLEX, .75, cv::Scalar(255,0,0),2,8,false);
+  else if (index == 2)
+    putText(img_rgb,text, cv::Point(20,img_rgb.rows-70), cv::FONT_HERSHEY_DUPLEX, .75, cv::Scalar(0,255,0),2,8,false);
 
   sprintf(text,"# Matches: %d, # Inliers: %d, Ratio %.2f",nmatches,ninliers,ratio);
 
-  if (index == 0) {
-    putText(img_rgb,text,Point(20,img_rgb.rows-30),CV_FONT_HERSHEY_DUPLEX,.75,CV_RGB(255,255,0),2,8,false);
-  }
-  else if (index == 1) {
-    putText(img_rgb,text,Point(20,img_rgb.rows-30),CV_FONT_HERSHEY_DUPLEX,.75,CV_RGB(255,0,0),2,8,false);
-  }
-  else if (index == 2) {
-    putText(img_rgb,text,Point(20,img_rgb.rows-30),CV_FONT_HERSHEY_DUPLEX,.75,CV_RGB(0,255,0),2,8,false);
-  }
+  if (index == 0)
+    putText(img_rgb,text, cv::Point(20,img_rgb.rows-30), cv::FONT_HERSHEY_DUPLEX, .75, cv::Scalar(255,255,0),2,8,false);
+  else if (index == 1)
+    putText(img_rgb,text, cv::Point(20,img_rgb.rows-30), cv::FONT_HERSHEY_DUPLEX, .75, cv::Scalar(255,0,0),2,8,false);
+  else if (index == 2)
+    putText(img_rgb,text, cv::Point(20,img_rgb.rows-30), cv::FONT_HERSHEY_DUPLEX, .75, cv::Scalar(0,255,0),2,8,false);
 }

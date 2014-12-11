@@ -1,7 +1,7 @@
 /**
  * @file KAZEConfig.h
  * @brief KAZE configuration file
- * @date Apr 13, 2014
+ * @date Dec 11, 2014
  * @author Pablo F. Alcantarilla
  */
 
@@ -9,18 +9,13 @@
 
 /* ************************************************************************* */
 // OpenCV
-#include <opencv2/opencv.hpp>
-#include <opencv2/features2d/features2d.hpp>
+#include <opencv2/core/core.hpp>
 
 // OpenMP
 #ifdef _OPENMP
-# include <omp.h>
+#include <omp.h>
+#define OMP_MAX_THREADS 16
 #endif
-
-// System Includes
-#include <string>
-#include <vector>
-#include <cmath>
 
 /* ************************************************************************* */
 /// KAZE Descriptor Type
@@ -57,6 +52,7 @@ struct KAZEOptions {
     omax = 4;
     nsublevels = 4;
     dthreshold = 0.001;
+    min_dthreshold = 0.000001f;
     use_fed = true;
     descriptor = MSURF;
     diffusivity = PM_G2;
@@ -80,7 +76,9 @@ struct KAZEOptions {
   float kcontrast_percentile;     ///< Percentile level for the contrast factor
   size_t kcontrast_nbins;         ///< Number of bins for the contrast factor histogram
   float sderivatives;
-  float dthreshold;
+  float dthreshold;               ///< Detector response threshold to accept point
+  float min_dthreshold;           ///< Minimum detector threshold to accept a point
+
   bool use_fed;
 
   DESCRIPTOR_TYPE descriptor;

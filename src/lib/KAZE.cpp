@@ -1,13 +1,11 @@
 //=============================================================================
 //
 // KAZE.cpp
-// Author: Pablo F. Alcantarilla
-// Institution: University d'Auvergne
-// Address: Clermont Ferrand, France
-// Date: 21/01/2012
+// Authors: Pablo F. Alcantarilla
+// Date: 11/12/2014
 // Email: pablofdezalc@gmail.com
 //
-// KAZE Features Copyright 2012, Pablo F. Alcantarilla
+// KAZE Features Copyright 2014, Pablo F. Alcantarilla
 // All Rights Reserved
 // See LICENSE for the license information
 //=============================================================================
@@ -16,35 +14,24 @@
  * @file KAZE.cpp
  * @brief Main class for detecting and describing features in a nonlinear
  * scale space
- * @date Jan 21, 2012
+ * @date Dec 11, 2014
  * @author Pablo F. Alcantarilla
  */
 
 #include "KAZE.h"
 
-// Namespaces
 using namespace std;
-using namespace cv;
+using namespace libKAZE;
 
 /* ************************************************************************* */
-/**
- * @brief KAZE constructor with input options
- * @param options KAZE configuration options
- * @note The constructor allocates memory for the nonlinear scale space
-*/
 KAZE::KAZE(KAZEOptions& options) : options_(options) {
 
   ncycles_ = 0;
   reordering_ = true;
-
-  // Now allocate memory for the evolution
   Allocate_Memory_Evolution();
 }
 
 /* ************************************************************************* */
-/**
- * @brief KAZE destructor
-*/
 KAZE::~KAZE(void) {
 
   evolution_.clear();
@@ -54,27 +41,29 @@ KAZE::~KAZE(void) {
 /**
  * @brief This method allocates the memory for the nonlinear diffusion evolution
 */
-void KAZE::Allocate_Memory_Evolution(void) {
+void KAZE::Allocate_Memory_Evolution() {
+
+  cv::Size size(options_.img_width, options_.img_height);
 
   // Allocate the dimension of the matrices for the evolution
   for (int i = 0; i <= options_.omax-1; i++) {
     for (int j = 0; j <= options_.nsublevels-1; j++) {
 
-      TEvolution aux;
-      aux.Lx  = cv::Mat::zeros(options_.img_height, options_.img_width, CV_32F);
-      aux.Ly  = cv::Mat::zeros(options_.img_height, options_.img_width, CV_32F);
-      aux.Lxx = cv::Mat::zeros(options_.img_height, options_.img_width, CV_32F);
-      aux.Lxy = cv::Mat::zeros(options_.img_height, options_.img_width, CV_32F);
-      aux.Lyy = cv::Mat::zeros(options_.img_height, options_.img_width, CV_32F);
-      aux.Lt  = cv::Mat::zeros(options_.img_height, options_.img_width, CV_32F);
-      aux.Lsmooth = cv::Mat::zeros(options_.img_height, options_.img_width, CV_32F);
-      aux.Ldet = cv::Mat::zeros(options_.img_height, options_.img_width, CV_32F);
-      aux.esigma = options_.soffset*pow((float)2.0,(float)(j)/(float)(options_.nsublevels) + i);
-      aux.etime = 0.5*(aux.esigma*aux.esigma);
-      aux.sigma_size = fRound(aux.esigma);
-      aux.octave = i;
-      aux.sublevel = j;
-      evolution_.push_back(aux);
+      TEvolution step;
+      step.Lx.create(size, CV_32F);
+      step.Ly.create(size, CV_32F);
+      step.Lxx.create(size, CV_32F);
+      step.Lxy.create(size, CV_32F);
+      step.Lyy.create(size, CV_32F);
+      step.Lt.create(size, CV_32F);
+      step.Lsmooth.create(size, CV_32F);
+      step.Ldet.create(size, CV_32F);
+      step.esigma = options_.soffset*pow((float)2.0,(float)(j)/(float)(options_.nsublevels) + i);
+      step.etime = 0.5*(step.esigma*step.esigma);
+      step.sigma_size = fRound(step.esigma);
+      step.octave = i;
+      step.sublevel = j;
+      evolution_.push_back(step);
     }
   }
 
@@ -85,33 +74,28 @@ void KAZE::Allocate_Memory_Evolution(void) {
       vector<float> tau;
       float ttime = 0.0;
       ttime = evolution_[i].etime-evolution_[i-1].etime;
-      naux = fed_tau_by_process_time(ttime,1,0.25,reordering_,tau);
+      naux = fed_tau_by_process_time(ttime, 1, 0.25, reordering_, tau);
       nsteps_.push_back(naux);
       tsteps_.push_back(tau);
       ncycles_++;
     }
   }
+  // Allocate memory for the auxiliary variables that are used in the AOS scheme
   else {
-    // Allocate memory for the auxiliary variables that are used in the AOS scheme
-    Ltx_ = cv::Mat::zeros(options_.img_height,options_.img_width,CV_32F);
-    Lty_ = cv::Mat::zeros(options_.img_height,options_.img_width,CV_32F);
-    px_ = cv::Mat::zeros(options_.img_height,options_.img_width,CV_32F);
-    py_ = cv::Mat::zeros(options_.img_height,options_.img_width,CV_32F);
-    ax_ = cv::Mat::zeros(options_.img_height,options_.img_width,CV_32F);
-    ay_ = cv::Mat::zeros(options_.img_height,options_.img_width,CV_32F);
-    bx_ = cv::Mat::zeros(options_.img_height-1,options_.img_width,CV_32F);
-    by_ = cv::Mat::zeros(options_.img_height-1,options_.img_width,CV_32F);
-    qr_ = cv::Mat::zeros(options_.img_height-1,options_.img_width,CV_32F);
-    qc_ = cv::Mat::zeros(options_.img_height,options_.img_width-1,CV_32F);
+    Ltx_.create(size, CV_32F);
+    Lty_.create(size, CV_32F);
+    px_.create(size, CV_32F);
+    py_.create(size, CV_32F);
+    ax_.create(size, CV_32F);
+    ay_.create(size, CV_32F);
+    bx_ = cv::Mat::zeros(options_.img_height-1, options_.img_width, CV_32F);
+    by_ = cv::Mat::zeros(options_.img_height-1, options_.img_width, CV_32F);
+    qr_ = cv::Mat::zeros(options_.img_height-1, options_.img_width, CV_32F);
+    qc_ = cv::Mat::zeros(options_.img_height, options_.img_width-1, CV_32F);
   }
 }
 
 /* ************************************************************************* */
-/**
- * @brief This method creates the nonlinear scale space for a given image
- * @param img Input image for which the nonlinear scale space needs to be created
- * @return 0 if the nonlinear scale space was created successfully. -1 otherwise
-*/
 int KAZE::Create_Nonlinear_Scale_Space(const cv::Mat& img) {
 
   double t2 = 0.0, t1 = 0.0;
@@ -122,7 +106,7 @@ int KAZE::Create_Nonlinear_Scale_Space(const cv::Mat& img) {
     return -1;
   }
 
-  t1 = getTickCount();
+  t1 = cv::getTickCount();
 
   // Copy the original image to the first level of the evolution
   img.copyTo(evolution_[0].Lt);
@@ -136,8 +120,8 @@ int KAZE::Create_Nonlinear_Scale_Space(const cv::Mat& img) {
   // Firstly compute the kcontrast factor
   Compute_KContrast(img);
 
-  t2 = getTickCount();
-  timing_.kcontrast = 1000.0*(t2-t1) / getTickFrequency();
+  t2 = cv::getTickCount();
+  timing_.kcontrast = 1000.0*(t2-t1) / cv::getTickFrequency();
 
   if (options_.verbosity == true) {
     cout << "Computed image evolution step. Evolution time: " << evolution_[0].etime <<
@@ -151,8 +135,8 @@ int KAZE::Create_Nonlinear_Scale_Space(const cv::Mat& img) {
     gaussian_2D_convolution(evolution_[i-1].Lt, evolution_[i].Lsmooth, 0, 0, options_.sderivatives);
 
     // Compute the Gaussian derivatives Lx and Ly
-    Scharr(evolution_[i].Lsmooth, evolution_[i].Lx, CV_32F, 1, 0, 1, 0, BORDER_DEFAULT);
-    Scharr(evolution_[i].Lsmooth, evolution_[i].Ly, CV_32F, 0, 1, 1, 0, BORDER_DEFAULT);
+    cv::Scharr(evolution_[i].Lsmooth, evolution_[i].Lx, CV_32F, 1, 0, 1, 0, cv::BORDER_DEFAULT);
+    cv::Scharr(evolution_[i].Lsmooth, evolution_[i].Ly, CV_32F, 0, 1, 1, 0, cv::BORDER_DEFAULT);
 
     // Compute the conductivity equation
     switch (options_.diffusivity) {
@@ -174,15 +158,12 @@ int KAZE::Create_Nonlinear_Scale_Space(const cv::Mat& img) {
 
     // Perform FED n inner steps
     if (options_.use_fed) {
-      for (int j = 0; j < nsteps_[i-1]; j++) {
+      for (int j = 0; j < nsteps_[i-1]; j++)
         nld_step_scalar(evolution_[i].Lt, Lflow, Lstep, tsteps_[i-1][j]);
-      }
     }
-    else {
-      // Perform the evolution step with AOS
-      AOS_Step_Scalar(evolution_[i].Lt, evolution_[i-1].Lt, Lflow,
-                      evolution_[i].etime-evolution_[i-1].etime);
-    }
+    // Perform the evolution step with AOS
+    else
+      AOS_Step_Scalar(evolution_[i].Lt, evolution_[i-1].Lt, Lflow, evolution_[i].etime-evolution_[i-1].etime);
 
     if (options_.verbosity == true) {
       cout << "Computed image evolution step " << i << " Evolution time: " << evolution_[i].etime <<
@@ -190,18 +171,13 @@ int KAZE::Create_Nonlinear_Scale_Space(const cv::Mat& img) {
     }
   }
 
-  t2 = getTickCount();
-  timing_.scale = 1000.0*(t2-t1) / getTickFrequency();
+  t2 = cv::getTickCount();
+  timing_.scale = 1000.0*(t2-t1) / cv::getTickFrequency();
 
   return 0;
 }
 
 /* ************************************************************************* */
-/**
- * @brief This method computes the k contrast factor
- * @param img Input image
- * @param kpercentile Percentile of the gradient histogram
-*/
 void KAZE::Compute_KContrast(const cv::Mat& img) {
 
   if (options_.verbosity == true) {
@@ -218,18 +194,15 @@ void KAZE::Compute_KContrast(const cv::Mat& img) {
 }
 
 /* ************************************************************************* */
-/**
- * @brief This method computes the multiscale derivatives for the nonlinear scale space
-*/
 void KAZE::Compute_Multiscale_Derivatives() {
 
   double t2 = 0.0, t1 = 0.0;
-  t1 = getTickCount();
+  t1 = cv::getTickCount();
 
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-  for (size_t i = 0; i < evolution_.size(); i++) {
+  for (int i = 0; i < (int)(evolution_.size()); i++) {
 
     if (options_.verbosity == true) {
       cout << "Computing multiscale derivatives. Evolution time: " << evolution_[i].etime
@@ -237,11 +210,11 @@ void KAZE::Compute_Multiscale_Derivatives() {
     }
 
     // Compute multiscale derivatives for the detector
-    compute_scharr_derivatives(evolution_[i].Lsmooth,evolution_[i].Lx,1,0,evolution_[i].sigma_size);
-    compute_scharr_derivatives(evolution_[i].Lsmooth,evolution_[i].Ly,0,1,evolution_[i].sigma_size);
-    compute_scharr_derivatives(evolution_[i].Lx,evolution_[i].Lxx,1,0,evolution_[i].sigma_size);
-    compute_scharr_derivatives(evolution_[i].Ly,evolution_[i].Lyy,0,1,evolution_[i].sigma_size);
-    compute_scharr_derivatives(evolution_[i].Lx,evolution_[i].Lxy,0,1,evolution_[i].sigma_size);
+    compute_scharr_derivatives(evolution_[i].Lsmooth, evolution_[i].Lx, 1,0, evolution_[i].sigma_size);
+    compute_scharr_derivatives(evolution_[i].Lsmooth, evolution_[i].Ly, 0, 1, evolution_[i].sigma_size);
+    compute_scharr_derivatives(evolution_[i].Lx, evolution_[i].Lxx, 1, 0, evolution_[i].sigma_size);
+    compute_scharr_derivatives(evolution_[i].Ly, evolution_[i].Lyy, 0, 1, evolution_[i].sigma_size);
+    compute_scharr_derivatives(evolution_[i].Lx, evolution_[i].Lxy, 0, 1, evolution_[i].sigma_size);
 
     evolution_[i].Lx = evolution_[i].Lx*((evolution_[i].sigma_size));
     evolution_[i].Ly = evolution_[i].Ly*((evolution_[i].sigma_size));
@@ -250,18 +223,12 @@ void KAZE::Compute_Multiscale_Derivatives() {
     evolution_[i].Lyy = evolution_[i].Lyy*((evolution_[i].sigma_size)*(evolution_[i].sigma_size));
   }
 
-  t2 = getTickCount();
-  timing_.derivatives = 1000.0*(t2-t1) / getTickFrequency();
+  t2 = cv::getTickCount();
+  timing_.derivatives = 1000.0*(t2-t1) / cv::getTickFrequency();
 }
 
 /* ************************************************************************* */
-/**
- * @brief This method computes the feature detector response for the nonlinear scale space
- * @note We use the Hessian determinant as feature detector
-*/
 void KAZE::Compute_Detector_Response() {
-
-  float lxx = 0.0, lxy = 0.0, lyy = 0.0;
 
   // Firstly compute the multiscale derivatives
   Compute_Multiscale_Derivatives();
@@ -273,46 +240,33 @@ void KAZE::Compute_Detector_Response() {
       cout << "Computing detector response. Determinant of Hessian. Evolution time: " << evolution_[i].etime << endl;
 
     for (int ix = 0; ix < options_.img_height; ix++) {
-      for (int jx = 0; jx < options_.img_width; jx++) {
-        lxx = *(evolution_[i].Lxx.ptr<float>(ix)+jx);
-        lxy = *(evolution_[i].Lxy.ptr<float>(ix)+jx);
-        lyy = *(evolution_[i].Lyy.ptr<float>(ix)+jx);
-        *(evolution_[i].Ldet.ptr<float>(ix)+jx) = (lxx*lyy-lxy*lxy);
-      }
+
+      const float* lxx = evolution_[i].Lxx.ptr<float>(ix);
+      const float* lxy = evolution_[i].Lxy.ptr<float>(ix);
+      const float* lyy = evolution_[i].Lyy.ptr<float>(ix);
+      float* ldet = evolution_[i].Ldet.ptr<float>(ix);
+
+      for (int jx = 0; jx < options_.img_width; jx++)
+       ldet[jx] = (lxx[jx]*lyy[jx]-lxy[jx]*lxy[jx]);
     }
   }
 }
 
 /* ************************************************************************* */
-/**
- * @brief This method selects interesting keypoints through the nonlinear scale space
- * @param kpts Vector of keypoints
-*/
 void KAZE::Feature_Detection(std::vector<cv::KeyPoint>& kpts) {
 
   double t2 = 0.0, t1 = 0.0;
-  t1 = getTickCount();
+  t1 = cv::getTickCount();
 
-  // Firstly compute the detector response for each pixel and scale level
   Compute_Detector_Response();
-
-  // Find scale space extrema
   Determinant_Hessian_Parallel(kpts);
-
-  // Perform some subpixel refinement
   Do_Subpixel_Refinement(kpts);
 
-  t2 = getTickCount();
-  timing_.detector = 1000.0*(t2-t1) / getTickFrequency();
+  t2 = cv::getTickCount();
+  timing_.detector = 1000.0*(t2-t1) / cv::getTickFrequency();
 }
 
 /* ************************************************************************* */
-/**
- * @brief This method performs the detection of keypoints by using the normalized
- * score of the Hessian determinant through the nonlinear scale space
- * @param kpts Vector of keypoints
- * @note We compute features for each of the nonlinear scale space level in a different processing thread
-*/
 void KAZE::Determinant_Hessian_Parallel(std::vector<cv::KeyPoint>& kpts) {
 
   int level = 0;
@@ -324,10 +278,10 @@ void KAZE::Determinant_Hessian_Parallel(std::vector<cv::KeyPoint>& kpts) {
   // Delete the memory of the vector of keypoints vectors
   // In case we use the same kaze object for multiple images
   for (size_t i = 0; i < kpts_par_.size(); i++)
-    vector<KeyPoint>().swap(kpts_par_[i]);
+    vector<cv::KeyPoint>().swap(kpts_par_[i]);
 
   kpts_par_.clear();
-  vector<KeyPoint> aux;
+  vector<cv::KeyPoint> aux;
 
   // Allocate memory for the vector of vectors
   for (size_t i = 1; i < evolution_.size()-1; i++)
@@ -350,7 +304,9 @@ void KAZE::Determinant_Hessian_Parallel(std::vector<cv::KeyPoint>& kpts) {
       // Check in case we have the same point as maxima in previous evolution levels
       for (size_t ik = 0; ik < kpts.size(); ik++) {
         if (kpts[ik].class_id == level || kpts[ik].class_id == level+1 || kpts[ik].class_id == level-1) {
-          dist = pow(kpts_par_[i][j].pt.x-kpts[ik].pt.x,2)+pow(kpts_par_[i][j].pt.y-kpts[ik].pt.y,2);
+
+          dist = (kpts_par_[i][j].pt.x-kpts[ik].pt.x)*(kpts_par_[i][j].pt.x-kpts[ik].pt.x) +
+              (kpts_par_[i][j].pt.y-kpts[ik].pt.y)*(kpts_par_[i][j].pt.y-kpts[ik].pt.y);
 
           if (dist < evolution_[level].sigma_size*evolution_[level].sigma_size) {
             if (kpts_par_[i][j].response > kpts[ik].response) {
@@ -395,11 +351,6 @@ void KAZE::Determinant_Hessian_Parallel(std::vector<cv::KeyPoint>& kpts) {
 }
 
 /* ************************************************************************* */
-/**
- * @brief This method is called by the thread which is responsible of finding extrema
- * at a given nonlinear scale level
- * @param level Index in the nonlinear scale space evolution
-*/
 void KAZE::Find_Extremum_Threading(const int level) {
 
   float value = 0.0;
@@ -429,7 +380,7 @@ void KAZE::Find_Extremum_Threading(const int level) {
 
       // Add the point of interest!!
       if (is_extremum == true) {
-        KeyPoint point;
+        cv::KeyPoint point;
         point.pt.x = jx;
         point.pt.y = ix;
         point.response = fabs(value);
@@ -447,23 +398,19 @@ void KAZE::Find_Extremum_Threading(const int level) {
 }
 
 /* ************************************************************************* */
-/**
- * @brief This method performs subpixel refinement of the detected keypoints
- * @param kpts Vector of detected keypoints
-*/
-void KAZE::Do_Subpixel_Refinement(std::vector<cv::KeyPoint> &kpts) {
+void KAZE::Do_Subpixel_Refinement(std::vector<cv::KeyPoint>& kpts) {
 
   int step = 1;
   int x = 0, y = 0;
   float Dx = 0.0, Dy = 0.0, Ds = 0.0, dsc = 0.0;
   float Dxx = 0.0, Dyy = 0.0, Dss = 0.0, Dxy = 0.0, Dxs = 0.0, Dys = 0.0;
-  Mat A = Mat::zeros(3,3,CV_32F);
-  Mat b = Mat::zeros(3,1,CV_32F);
-  Mat dst = Mat::zeros(3,1,CV_32F);
+  cv::Matx33f A(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+  cv::Vec3f b(0.0, 0.0, 0.0);
+  cv::Vec3f dst(0.0, 0.0, 0.0);
   double t2 = 0.0, t1 = 0.0;
 
   t1 = cv::getTickCount();
-  vector<KeyPoint> kpts_(kpts);
+  vector<cv::KeyPoint> kpts_(kpts);
 
   for (size_t i = 0; i < kpts_.size(); i++) {
 
@@ -472,62 +419,60 @@ void KAZE::Do_Subpixel_Refinement(std::vector<cv::KeyPoint> &kpts) {
 
     // Compute the gradient
     Dx = (1.0/(2.0*step))*(*(evolution_[kpts_[i].class_id].Ldet.ptr<float>(y)+x+step)
-                           -*(evolution_[kpts_[i].class_id].Ldet.ptr<float>(y)+x-step));
+        -*(evolution_[kpts_[i].class_id].Ldet.ptr<float>(y)+x-step));
     Dy = (1.0/(2.0*step))*(*(evolution_[kpts_[i].class_id].Ldet.ptr<float>(y+step)+x)
-                           -*(evolution_[kpts_[i].class_id].Ldet.ptr<float>(y-step)+x));
+        -*(evolution_[kpts_[i].class_id].Ldet.ptr<float>(y-step)+x));
     Ds = 0.5*(*(evolution_[kpts_[i].class_id+1].Ldet.ptr<float>(y)+x)
-              -*(evolution_[kpts_[i].class_id-1].Ldet.ptr<float>(y)+x));
+        -*(evolution_[kpts_[i].class_id-1].Ldet.ptr<float>(y)+x));
 
     // Compute the Hessian
     Dxx = (1.0/(step*step))*(*(evolution_[kpts_[i].class_id].Ldet.ptr<float>(y)+x+step)
-                             + *(evolution_[kpts_[i].class_id].Ldet.ptr<float>(y)+x-step)
-                             -2.0*(*(evolution_[kpts_[i].class_id].Ldet.ptr<float>(y)+x)));
+        + *(evolution_[kpts_[i].class_id].Ldet.ptr<float>(y)+x-step)
+        -2.0*(*(evolution_[kpts_[i].class_id].Ldet.ptr<float>(y)+x)));
 
     Dyy = (1.0/(step*step))*(*(evolution_[kpts_[i].class_id].Ldet.ptr<float>(y+step)+x)
-                             + *(evolution_[kpts_[i].class_id].Ldet.ptr<float>(y-step)+x)
-                             -2.0*(*(evolution_[kpts_[i].class_id].Ldet.ptr<float>(y)+x)));
+        + *(evolution_[kpts_[i].class_id].Ldet.ptr<float>(y-step)+x)
+        -2.0*(*(evolution_[kpts_[i].class_id].Ldet.ptr<float>(y)+x)));
 
     Dss = *(evolution_[kpts_[i].class_id+1].Ldet.ptr<float>(y)+x)
         + *(evolution_[kpts_[i].class_id-1].Ldet.ptr<float>(y)+x)
         -2.0*(*(evolution_[kpts_[i].class_id].Ldet.ptr<float>(y)+x));
 
     Dxy = (1.0/(4.0*step))*(*(evolution_[kpts_[i].class_id].Ldet.ptr<float>(y+step)+x+step)
-                            +(*(evolution_[kpts_[i].class_id].Ldet.ptr<float>(y-step)+x-step)))
+        +(*(evolution_[kpts_[i].class_id].Ldet.ptr<float>(y-step)+x-step)))
         -(1.0/(4.0*step))*(*(evolution_[kpts_[i].class_id].Ldet.ptr<float>(y-step)+x+step)
-                           +(*(evolution_[kpts_[i].class_id].Ldet.ptr<float>(y+step)+x-step)));
+        +(*(evolution_[kpts_[i].class_id].Ldet.ptr<float>(y+step)+x-step)));
 
     Dxs = (1.0/(4.0*step))*(*(evolution_[kpts_[i].class_id+1].Ldet.ptr<float>(y)+x+step)
-                            +(*(evolution_[kpts_[i].class_id-1].Ldet.ptr<float>(y)+x-step)))
+        +(*(evolution_[kpts_[i].class_id-1].Ldet.ptr<float>(y)+x-step)))
         -(1.0/(4.0*step))*(*(evolution_[kpts_[i].class_id+1].Ldet.ptr<float>(y)+x-step)
-                           +(*(evolution_[kpts_[i].class_id-1].Ldet.ptr<float>(y)+x+step)));
+        +(*(evolution_[kpts_[i].class_id-1].Ldet.ptr<float>(y)+x+step)));
 
     Dys = (1.0/(4.0*step))*(*(evolution_[kpts_[i].class_id+1].Ldet.ptr<float>(y+step)+x)
-                            +(*(evolution_[kpts_[i].class_id-1].Ldet.ptr<float>(y-step)+x)))
+        +(*(evolution_[kpts_[i].class_id-1].Ldet.ptr<float>(y-step)+x)))
         -(1.0/(4.0*step))*(*(evolution_[kpts_[i].class_id+1].Ldet.ptr<float>(y-step)+x)
-                           +(*(evolution_[kpts_[i].class_id-1].Ldet.ptr<float>(y+step)+x)));
+        +(*(evolution_[kpts_[i].class_id-1].Ldet.ptr<float>(y+step)+x)));
 
     // Solve the linear system
-    *(A.ptr<float>(0)) = Dxx;
-    *(A.ptr<float>(1)+1) = Dyy;
-    *(A.ptr<float>(2)+2) = Dss;
+    A(0,0) = Dxx;
+    A(1,1) = Dyy;
+    A(2,2) = Dss;
+    A(0,1) = A(1,0) = Dxy;
+    A(0,2) = A(2,0) = Dxs;
+    A(1,2) = A(2,1) = Dys;
+    b(0) = -Dx;
+    b(1) = -Dy;
+    b(2) = -Ds;
 
-    *(A.ptr<float>(0)+1) = *(A.ptr<float>(1)) = Dxy;
-    *(A.ptr<float>(0)+2) = *(A.ptr<float>(2)) = Dxs;
-    *(A.ptr<float>(1)+2) = *(A.ptr<float>(2)+1) = Dys;
+    cv::solve(A, b, dst, cv::DECOMP_LU);
 
-    *(b.ptr<float>(0)) = -Dx;
-    *(b.ptr<float>(1)) = -Dy;
-    *(b.ptr<float>(2)) = -Ds;
-
-    solve(A,b,dst,DECOMP_LU);
-
-    if (fabs(*(dst.ptr<float>(0))) <= 1.0 && fabs(*(dst.ptr<float>(1))) <= 1.0 && fabs(*(dst.ptr<float>(2))) <= 1.0) {
-      kpts_[i].pt.x += *(dst.ptr<float>(0));
-      kpts_[i].pt.y += *(dst.ptr<float>(1));
-      dsc = kpts_[i].octave + (kpts_[i].angle+*(dst.ptr<float>(2)))/((float)(options_.nsublevels));
+    if (fabs(dst(0)) <= 1.0 && fabs(dst(1)) <= 1.0 && fabs(dst(2)) <= 1.0) {
+      kpts_[i].pt.x += dst(0);
+      kpts_[i].pt.y += dst(1);
+      dsc = kpts_[i].octave + (kpts_[i].angle+dst(2))/((float)(options_.nsublevels));
 
       // In OpenCV the size of a keypoint is the diameter!!
-      kpts_[i].size = 2.0*options_.soffset*pow((float)2.0,dsc);
+      kpts_[i].size = 2.0*options_.soffset*pow(2.0f, dsc);
       kpts_[i].angle = 0.0;
     }
     // Set the points to be deleted after the for loop
@@ -545,74 +490,15 @@ void KAZE::Do_Subpixel_Refinement(std::vector<cv::KeyPoint> &kpts) {
     }
   }
 
-  t2 = getTickCount();
-  timing_.subpixel = 1000.0*(t2-t1) / getTickFrequency();
+  t2 = cv::getTickCount();
+  timing_.subpixel = 1000.0*(t2-t1) / cv::getTickFrequency();
 }
 
 /* ************************************************************************* */
-/**
- * @brief This method performs feature suppression based on 2D distance
- * @param kpts Vector of keypoints
- * @param mdist Maximum distance in pixels
-*/
-void KAZE::Feature_Suppression_Distance(std::vector<cv::KeyPoint>& kpts, const float mdist) {
-
-  vector<KeyPoint> aux;
-  vector<int> to_delete;
-  float dist = 0.0, x1 = 0.0, y1 = 0.0, x2 = 0.0, y2 = 0.0;
-  bool found = false;
-
-  for (size_t i = 0; i < kpts.size(); i++) {
-    x1 = kpts[i].pt.x;
-    y1 = kpts[i].pt.y;
-
-    for (size_t j = i+1; j < kpts.size(); j++) {
-      x2 = kpts[j].pt.x;
-      y2 = kpts[j].pt.y;
-      dist = sqrt(pow(x1-x2,2)+pow(y1-y2,2));
-
-      if (dist < mdist) {
-        if (fabs(kpts[i].response) >= fabs(kpts[j].response)) {
-          to_delete.push_back(j);
-        }
-        else {
-          to_delete.push_back(i);
-          break;
-        }
-      }
-    }
-  }
-
-  for (size_t i = 0; i < kpts.size(); i++) {
-    found = false;
-
-    for (size_t j = 0; j < to_delete.size(); j++) {
-      if(i == (size_t)(to_delete[j])) {
-        found = true;
-        break;
-      }
-    }
-
-    if (found == false) {
-      aux.push_back(kpts[i]);
-    }
-  }
-
-  kpts.clear();
-  kpts = aux;
-  aux.clear();
-}
-
-/* ************************************************************************* */
-/**
- * @brief This method  computes the set of descriptors through the nonlinear scale space
- * @param kpts Vector of keypoints
- * @param desc Matrix with the feature descriptors
-*/
 void KAZE::Compute_Descriptors(std::vector<cv::KeyPoint> &kpts, cv::Mat &desc) {
 
   double t2 = 0.0, t1 = 0.0;
-  t1 = getTickCount();
+  t1 = cv::getTickCount();
 
   // Allocate memory for the matrix of descriptors
   if (options_.descriptor == SURF_EXTENDED ||
@@ -621,10 +507,10 @@ void KAZE::Compute_Descriptors(std::vector<cv::KeyPoint> &kpts, cv::Mat &desc) {
       options_.descriptor == MSURF_EXTENDED_UPRIGHT ||
       options_.descriptor == GSURF_EXTENDED ||
       options_.descriptor == GSURF_EXTENDED_UPRIGHT) {
-    desc = Mat::zeros(kpts.size(),128,CV_32FC1);
+    desc = cv::Mat::zeros(kpts.size(), 128, CV_32FC1);
   }
   else {
-    desc = Mat::zeros(kpts.size(),64,CV_32FC1);
+    desc = cv::Mat::zeros(kpts.size(), 64, CV_32FC1);
   }
 
   switch (options_.descriptor) {
@@ -753,17 +639,11 @@ void KAZE::Compute_Descriptors(std::vector<cv::KeyPoint> &kpts, cv::Mat &desc) {
     break;
   }
 
-  t2 = getTickCount();
-  timing_.descriptor = 1000.0*(t2-t1) / getTickFrequency();
+  t2 = cv::getTickCount();
+  timing_.descriptor = 1000.0*(t2-t1) / cv::getTickFrequency();
 }
 
 /* ************************************************************************* */
-/**
- * @brief This method computes the main orientation for a given keypoint
- * @param kpt Input keypoint
- * @note The orientation is computed using a similar approach as described in the
- * original SURF method. See Bay et al., Speeded Up Robust Features, ECCV 2006
-*/
 void KAZE::Compute_Main_Orientation(cv::KeyPoint& kpt) {
 
   int ix = 0, iy = 0, idx = 0, s = 0, level = 0;
@@ -777,7 +657,7 @@ void KAZE::Compute_Main_Orientation(cv::KeyPoint& kpt) {
   xf = kpt.pt.x;
   yf = kpt.pt.y;
   level = kpt.class_id;
-  s = fRound(kpt.size/2.0);
+  s = fRound(kpt.size/2.0f);
 
   // Calculate derivatives responses for points within radius of 6*scale
   for (int i = -6; i <= 6; ++i) {
@@ -787,7 +667,7 @@ void KAZE::Compute_Main_Orientation(cv::KeyPoint& kpt) {
         ix = fRound(xf + i*s);
 
         if (iy >= 0 && iy < options_.img_height && ix >= 0 && ix < options_.img_width) {
-          gweight = gaussian(iy-yf,ix-xf,2.5*s);
+          gweight = gaussian(iy-yf, ix-xf, 2.5*s);
           resX[idx] = gweight*(*(evolution_[level].Lx.ptr<float>(iy)+ix));
           resY[idx] = gweight*(*(evolution_[level].Ly.ptr<float>(iy)+ix));
         }
@@ -796,7 +676,7 @@ void KAZE::Compute_Main_Orientation(cv::KeyPoint& kpt) {
           resY[idx] = 0.0;
         }
 
-        Ang[idx] = getAngle(resX[idx],resY[idx]);
+        Ang[idx] = cv::fastAtan2(resY[idx], resX[idx])*(CV_PI/180.0);
         ++idx;
       }
     }
@@ -809,17 +689,16 @@ void KAZE::Compute_Main_Orientation(cv::KeyPoint& kpt) {
 
     for (size_t k = 0; k < Ang.size(); ++k) {
       // Get angle from the x-axis of the sample point
-      const float & ang = Ang[k];
+      const float& ang = Ang[k];
 
       // Determine whether the point is within the window
       if (ang1 < ang2 && ang1 < ang && ang < ang2) {
-        sumX+=resX[k];
-        sumY+=resY[k];
+        sumX += resX[k];
+        sumY += resY[k];
       }
-      else if (ang2 < ang1 &&
-               ((ang > 0 && ang < ang2) || (ang > ang1 && ang < 2.0*CV_PI))) {
-        sumX+=resX[k];
-        sumY+=resY[k];
+      else if (ang2 < ang1 && ((ang > 0 && ang < ang2) || (ang > ang1 && ang < 2.0*CV_PI))) {
+        sumX += resX[k];
+        sumY += resY[k];
       }
     }
 
@@ -828,23 +707,14 @@ void KAZE::Compute_Main_Orientation(cv::KeyPoint& kpt) {
     if (sumX*sumX + sumY*sumY > max) {
       // store largest orientation
       max = sumX*sumX + sumY*sumY;
-      kpt.angle = getAngle(sumX, sumY);
+      kpt.angle =  cv::fastAtan2(sumY, sumX)*(CV_PI/180.0);
     }
   }
 }
 
 /* ************************************************************************* */
-/**
- * @brief This method computes the upright descriptor (no rotation invariant)
- * of the provided keypoint
- * @param kpt Input keypoint
- * @param desc Descriptor vector
- * @note Rectangular grid of 20 s x 20 s. Descriptor Length 64. No additional
- * Gaussian weighting is performed. The descriptor is inspired from Bay et al.,
- * Speeded Up Robust Features, ECCV, 2006
-*/
-void KAZE::Get_SURF_Upright_Descriptor_64(const cv::KeyPoint &kpt, float *desc)
-{
+void KAZE::Get_SURF_Upright_Descriptor_64(const cv::KeyPoint& kpt, float* desc) {
+
   float dx = 0.0, dy = 0.0, mdx = 0.0, mdy = 0.0;
   float rx = 0.0, ry = 0.0, len = 0.0, xf = 0.0, yf = 0.0, sample_x = 0.0, sample_y = 0.0;
   float fx = 0.0, fy = 0.0, res1 = 0.0, res2 = 0.0, res3 = 0.0, res4 = 0.0;
@@ -860,7 +730,7 @@ void KAZE::Get_SURF_Upright_Descriptor_64(const cv::KeyPoint &kpt, float *desc)
   yf = kpt.pt.y;
   xf = kpt.pt.x;
   level = kpt.class_id;
-  scale = fRound(kpt.size/2.0);
+  scale = fRound(kpt.size/2.0f);
 
   // Calculate descriptor for this interest point
   for (int i = -pattern_size; i < pattern_size; i+=sample_step) {
@@ -926,15 +796,6 @@ void KAZE::Get_SURF_Upright_Descriptor_64(const cv::KeyPoint &kpt, float *desc)
 }
 
 /* ************************************************************************* */
-/**
- * @brief This method computes the descriptor of the provided keypoint given the
- * main orientation
- * @param kpt Input keypoint
- * @param desc Descriptor vector
- * @note Rectangular grid of 20 s x 20 s. Descriptor Length 64. No additional
- * Gaussian weighting is performed. The descriptor is inspired from Bay et al.,
- * Speeded Up Robust Features, ECCV, 2006
-*/
 void KAZE::Get_SURF_Descriptor_64(const cv::KeyPoint &kpt, float *desc) {
 
   float dx = 0.0, dy = 0.0, mdx = 0.0, mdy = 0.0;
@@ -952,7 +813,7 @@ void KAZE::Get_SURF_Descriptor_64(const cv::KeyPoint &kpt, float *desc) {
   // Get the information from the keypoint
   yf = kpt.pt.y;
   xf = kpt.pt.x;
-  scale = fRound(kpt.size/2.0);
+  scale = fRound(kpt.size/2.0f);
   angle = kpt.angle;
   level = kpt.class_id;
   co = cos(angle);
@@ -1026,16 +887,7 @@ void KAZE::Get_SURF_Descriptor_64(const cv::KeyPoint &kpt, float *desc) {
 }
 
 /* ************************************************************************* */
-/**
- * @brief This method computes the upright descriptor (not rotation invariant) of
- * the provided keypoint
- * @param kpt Input keypoint
- * @param desc Descriptor vector
- * @note Rectangular grid of 24 s x 24 s. Descriptor Length 64. The descriptor is inspired
- * from Agrawal et al., CenSurE: Center Surround Extremas for Realtime Feature Detection and Matching,
- * ECCV 2008
-*/
-void KAZE::Get_MSURF_Upright_Descriptor_64(const cv::KeyPoint &kpt, float *desc) {
+void KAZE::Get_MSURF_Upright_Descriptor_64(const cv::KeyPoint& kpt, float* desc) {
 
   float dx = 0.0, dy = 0.0, mdx = 0.0, mdy = 0.0, gauss_s1 = 0.0, gauss_s2 = 0.0;
   float rx = 0.0, ry = 0.0, len = 0.0, xf = 0.0, yf = 0.0, ys = 0.0, xs = 0.0;
@@ -1056,7 +908,7 @@ void KAZE::Get_MSURF_Upright_Descriptor_64(const cv::KeyPoint &kpt, float *desc)
   // Get the information from the keypoint
   yf = kpt.pt.y;
   xf = kpt.pt.x;
-  scale = fRound(kpt.size/2.0);
+  scale = fRound(kpt.size/2.0f);
   level = kpt.class_id;
 
   i = -8;
@@ -1151,16 +1003,7 @@ void KAZE::Get_MSURF_Upright_Descriptor_64(const cv::KeyPoint &kpt, float *desc)
 }
 
 /* ************************************************************************* */
-/**
- * @brief This method computes the descriptor of the provided keypoint given the
- * main orientation of the keypoint
- * @param kpt Input keypoint
- * @param desc Descriptor vector
- * @note Rectangular grid of 24 s x 24 s. Descriptor Length 64. The descriptor is inspired
- * from Agrawal et al., CenSurE: Center Surround Extremas for Realtime Feature Detection and Matching,
- * ECCV 2008
-*/
-void KAZE::Get_MSURF_Descriptor_64(const cv::KeyPoint &kpt, float *desc) {
+void KAZE::Get_MSURF_Descriptor_64(const cv::KeyPoint& kpt, float* desc) {
 
   float dx = 0.0, dy = 0.0, mdx = 0.0, mdy = 0.0, gauss_s1 = 0.0, gauss_s2 = 0.0;
   float rx = 0.0, ry = 0.0, rrx = 0.0, rry = 0.0, len = 0.0, xf = 0.0, yf = 0.0, ys = 0.0, xs = 0.0;
@@ -1181,7 +1024,7 @@ void KAZE::Get_MSURF_Descriptor_64(const cv::KeyPoint &kpt, float *desc) {
   // Get the information from the keypoint
   yf = kpt.pt.y;
   xf = kpt.pt.x;
-  scale = fRound(kpt.size/2.0);
+  scale = fRound(kpt.size/2.0f);
   angle = kpt.angle;
   level = kpt.class_id;
   co = cos(angle);
@@ -1277,16 +1120,7 @@ void KAZE::Get_MSURF_Descriptor_64(const cv::KeyPoint &kpt, float *desc) {
 }
 
 /* ************************************************************************* */
-/**
- * @brief This method computes the upright G-SURF descriptor of the provided keypoint
- * given the main orientation
- * @param kpt Input keypoint
- * @param desc Descriptor vector
- * @note Rectangular grid of 20 s x 20 s. Descriptor Length 64. No additional
- * G-SURF descriptor as described in Pablo F. Alcantarilla, Luis M. Bergasa and
- * Andrew J. Davison, Gauge-SURF Descriptors, Image and Vision Computing 31(1), 2013
-*/
-void KAZE::Get_GSURF_Upright_Descriptor_64(const cv::KeyPoint &kpt, float *desc) {
+void KAZE::Get_GSURF_Upright_Descriptor_64(const cv::KeyPoint& kpt, float* desc) {
 
   float dx = 0.0, dy = 0.0, mdx = 0.0, mdy = 0.0;
   float rx = 0.0, ry = 0.0, rxx = 0.0, rxy = 0.0, ryy = 0.0, len = 0.0, xf = 0.0, yf = 0.0;
@@ -1304,7 +1138,7 @@ void KAZE::Get_GSURF_Upright_Descriptor_64(const cv::KeyPoint &kpt, float *desc)
   // Get the information from the keypoint
   yf = kpt.pt.y;
   xf = kpt.pt.x;
-  scale = fRound(kpt.size/2.0);
+  scale = fRound(kpt.size/2.0f);
   level = kpt.class_id;
 
   // Calculate descriptor for this interest point
@@ -1405,15 +1239,6 @@ void KAZE::Get_GSURF_Upright_Descriptor_64(const cv::KeyPoint &kpt, float *desc)
 }
 
 /* ************************************************************************* */
-/**
- * @brief This method computes the G-SURF descriptor of the provided keypoint given the
- * main orientation
- * @param kpt Input keypoint
- * @param desc Descriptor vector
- * @note Rectangular grid of 20 s x 20 s. Descriptor Length 64. No additional
- * G-SURF descriptor as described in Pablo F. Alcantarilla, Luis M. Bergasa and
- * Andrew J. Davison, Gauge-SURF Descriptors, Image and Vision Computing 31(1), 2013
-*/
 void KAZE::Get_GSURF_Descriptor_64(const cv::KeyPoint &kpt, float *desc) {
 
   float dx = 0.0, dy = 0.0, mdx = 0.0, mdy = 0.0;
@@ -1432,7 +1257,7 @@ void KAZE::Get_GSURF_Descriptor_64(const cv::KeyPoint &kpt, float *desc) {
   // Get the information from the keypoint
   yf = kpt.pt.y;
   xf = kpt.pt.x;
-  scale = fRound(kpt.size/2.0);
+  scale = fRound(kpt.size/2.0f);
   angle = kpt.angle;
   level = kpt.class_id;
   co = cos(angle);
@@ -1536,16 +1361,7 @@ void KAZE::Get_GSURF_Descriptor_64(const cv::KeyPoint &kpt, float *desc) {
 }
 
 /* ************************************************************************* */
-/**
- * @brief This method computes the upright extended descriptor (no rotation invariant)
- * of the provided keypoint
- * @param kpt Input keypoint
- * @param desc Descriptor vector
- * @note Rectangular grid of 20 s x 20 s. Descriptor Length 128. No additional
- * Gaussian weighting is performed. The descriptor is inspired from Bay et al.,
- * Speeded Up Robust Features, ECCV, 2006
-*/
-void KAZE::Get_SURF_Upright_Descriptor_128(const cv::KeyPoint &kpt, float *desc) {
+void KAZE::Get_SURF_Upright_Descriptor_128(const cv::KeyPoint& kpt, float* desc) {
 
   float rx = 0.0, ry = 0.0, len = 0.0, xf = 0.0, yf = 0.0, sample_x = 0.0, sample_y = 0.0;
   float fx = 0.0, fy = 0.0, res1 = 0.0, res2 = 0.0, res3 = 0.0, res4 = 0.0;
@@ -1562,7 +1378,7 @@ void KAZE::Get_SURF_Upright_Descriptor_128(const cv::KeyPoint &kpt, float *desc)
   // Get the information from the keypoint
   yf = kpt.pt.y;
   xf = kpt.pt.x;
-  scale = fRound(kpt.size/2.0);
+  scale = fRound(kpt.size/2.0f);
   level = kpt.class_id;
 
   // Calculate descriptor for this interest point
@@ -1648,16 +1464,7 @@ void KAZE::Get_SURF_Upright_Descriptor_128(const cv::KeyPoint &kpt, float *desc)
 }
 
 /* ************************************************************************* */
-/**
- * @brief This method computes the extended descriptor of the provided keypoint given the
- * main orientation
- * @param kpt Input keypoint
- * @param desc Descriptor vector
- * @note Rectangular grid of 20 s x 20 s. Descriptor Length 128. No additional
- * Gaussian weighting is performed. The descriptor is inspired from Bay et al.,
- * Speeded Up Robust Features, ECCV, 2006
-*/
-void KAZE::Get_SURF_Descriptor_128(const cv::KeyPoint &kpt, float *desc) {
+void KAZE::Get_SURF_Descriptor_128(const cv::KeyPoint& kpt, float* desc) {
 
   float rx = 0.0, ry = 0.0, rrx = 0.0, rry = 0.0, len = 0.0, xf = 0.0, yf = 0.0;
   float sample_x = 0.0, sample_y = 0.0, co = 0.0, si = 0.0, angle = 0.0;
@@ -1675,7 +1482,7 @@ void KAZE::Get_SURF_Descriptor_128(const cv::KeyPoint &kpt, float *desc) {
   // Get the information from the keypoint
   yf = kpt.pt.y;
   xf = kpt.pt.x;
-  scale = fRound(kpt.size/2.0);
+  scale = fRound(kpt.size/2.0f);
   angle = kpt.angle;
   level = kpt.class_id;
   co = cos(angle);
@@ -1769,16 +1576,7 @@ void KAZE::Get_SURF_Descriptor_128(const cv::KeyPoint &kpt, float *desc) {
 }
 
 /* ************************************************************************* */
-/**
- * @brief This method computes the extended upright descriptor (not rotation invariant) of
- * the provided keypoint
- * @param kpt Input keypoint
- * @param desc Descriptor vector
- * @note Rectangular grid of 24 s x 24 s. Descriptor Length 128. The descriptor is inspired
- * from Agrawal et al., CenSurE: Center Surround Extremas for Realtime Feature Detection and Matching,
- * ECCV 2008
-*/
-void KAZE::Get_MSURF_Upright_Descriptor_128(const cv::KeyPoint &kpt, float *desc) {
+void KAZE::Get_MSURF_Upright_Descriptor_128(const cv::KeyPoint& kpt, float* desc) {
 
   float gauss_s1 = 0.0, gauss_s2 = 0.0;
   float rx = 0.0, ry = 0.0, len = 0.0, xf = 0.0, yf = 0.0, ys = 0.0, xs = 0.0;
@@ -1801,7 +1599,7 @@ void KAZE::Get_MSURF_Upright_Descriptor_128(const cv::KeyPoint &kpt, float *desc
   // Get the information from the keypoint
   yf = kpt.pt.y;
   xf = kpt.pt.x;
-  scale = fRound(kpt.size/2.0);
+  scale = fRound(kpt.size/2.0f);
   level = kpt.class_id;
 
   i = -8;
@@ -1918,16 +1716,7 @@ void KAZE::Get_MSURF_Upright_Descriptor_128(const cv::KeyPoint &kpt, float *desc
 }
 
 /* ************************************************************************* */
-/**
- * @brief This method computes the extended G-SURF descriptor of the provided keypoint
- * given the main orientation of the keypoint
- * @param kpt Input keypoint
- * @param desc Descriptor vector
- * @note Rectangular grid of 24 s x 24 s. Descriptor Length 128. The descriptor is inspired
- * from Agrawal et al., CenSurE: Center Surround Extremas for Realtime Feature Detection and Matching,
- * ECCV 2008
-*/
-void KAZE::Get_MSURF_Descriptor_128(const cv::KeyPoint &kpt, float *desc) {
+void KAZE::Get_MSURF_Descriptor_128(const cv::KeyPoint& kpt, float* desc) {
 
   float gauss_s1 = 0.0, gauss_s2 = 0.0;
   float rx = 0.0, ry = 0.0, rrx = 0.0, rry = 0.0, len = 0.0, xf = 0.0, yf = 0.0, ys = 0.0, xs = 0.0;
@@ -1950,7 +1739,7 @@ void KAZE::Get_MSURF_Descriptor_128(const cv::KeyPoint &kpt, float *desc) {
   // Get the information from the keypoint
   yf = kpt.pt.y;
   xf = kpt.pt.x;
-  scale = fRound(kpt.size/2.0);
+  scale = fRound(kpt.size/2.0f);
   angle = kpt.angle;
   level = kpt.class_id;
   co = cos(angle);
@@ -2072,17 +1861,8 @@ void KAZE::Get_MSURF_Descriptor_128(const cv::KeyPoint &kpt, float *desc) {
 }
 
 /* ************************************************************************* */
-/**
- * @brief This method computes the G-SURF upright extended descriptor
- * (no rotation invariant) of the provided keypoint
- * @param kpt Input keypoint
- * @param desc Descriptor vector
- * @note Rectangular grid of 20 s x 20 s. Descriptor Length 128. No additional
- * G-SURF descriptor as described in Pablo F. Alcantarilla, Luis M. Bergasa and
- * Andrew J. Davison, Gauge-SURF Descriptors, Image and Vision Computing 31(1), 2013
-*/
-void KAZE::Get_GSURF_Upright_Descriptor_128(const cv::KeyPoint &kpt, float *desc)
-{
+void KAZE::Get_GSURF_Upright_Descriptor_128(const cv::KeyPoint& kpt, float* desc) {
+
   float len = 0.0, xf = 0.0, yf = 0.0, sample_x = 0.0, sample_y = 0.0;
   float rx = 0.0, ry = 0.0, rxx = 0.0, rxy = 0.0, ryy = 0.0, modg = 0.0;
   float fx = 0.0, fy = 0.0, res1 = 0.0, res2 = 0.0, res3 = 0.0, res4 = 0.0;
@@ -2099,7 +1879,7 @@ void KAZE::Get_GSURF_Upright_Descriptor_128(const cv::KeyPoint &kpt, float *desc
   // Get the information from the keypoint
   yf = kpt.pt.y;
   xf = kpt.pt.x;
-  scale = fRound(kpt.size/2.0);
+  scale = fRound(kpt.size/2.0f);
   level = kpt.class_id;
 
   // Calculate descriptor for this interest point
@@ -2218,16 +1998,7 @@ void KAZE::Get_GSURF_Upright_Descriptor_128(const cv::KeyPoint &kpt, float *desc
 }
 
 /* ************************************************************************* */
-/**
- * @brief This method computes the extended descriptor of the provided keypoint given the
- * main orientation
- * @param kpt Input keypoint
- * @param desc Descriptor vector
- * @note Rectangular grid of 20 s x 20 s. Descriptor Length 128. No additional
- * G-SURF descriptor as described in Pablo F. Alcantarilla, Luis M. Bergasa and
- * Andrew J. Davison, Gauge-SURF Descriptors, Image and Vision Computing 31(1), 2013
-*/
-void KAZE::Get_GSURF_Descriptor_128(const cv::KeyPoint &kpt, float *desc) {
+void KAZE::Get_GSURF_Descriptor_128(const cv::KeyPoint& kpt, float* desc) {
 
   float len = 0.0, xf = 0.0, yf = 0.0;
   float rx = 0.0, ry = 0.0, rxx = 0.0, rxy = 0.0, ryy = 0.0;
@@ -2247,7 +2018,7 @@ void KAZE::Get_GSURF_Descriptor_128(const cv::KeyPoint &kpt, float *desc) {
   // Get the information from the keypoint
   yf = kpt.pt.y;
   xf = kpt.pt.x;
-  scale = fRound(kpt.size/2.0);
+  scale = fRound(kpt.size/2.0f);
   angle = kpt.angle;
   level = kpt.class_id;
   co = cos(angle);
@@ -2369,17 +2140,7 @@ void KAZE::Get_GSURF_Descriptor_128(const cv::KeyPoint &kpt, float *desc) {
 }
 
 /* ************************************************************************* */
-/**
- * @brief This method performs a scalar non-linear diffusion step using AOS schemes
- * @param Ld Image at a given evolution step
- * @param Ldprev Image at a previous evolution step
- * @param c Conductivity image
- * @param stepsize Stepsize for the nonlinear diffusion evolution
- * @note If c is constant, the diffusion will be linear
- * If c is a matrix of the same size as Ld, the diffusion will be nonlinear
- * The stepsize can be arbitrarilly large
-*/
-void KAZE::AOS_Step_Scalar(cv::Mat &Ld, const cv::Mat &Ldprev, const cv::Mat &c, const float& stepsize) {
+void KAZE::AOS_Step_Scalar(cv::Mat& Ld, const cv::Mat& Ldprev, const cv::Mat& c, const float stepsize) {
 
 #ifdef _OPENMP
 #pragma omp sections
@@ -2394,21 +2155,15 @@ void KAZE::AOS_Step_Scalar(cv::Mat &Ld, const cv::Mat &Ldprev, const cv::Mat &c,
     }
   }
 #else
-  AOS_Rows(Ldprev,c,stepsize);
-  AOS_Columns(Ldprev,c,stepsize);
+  AOS_Rows(Ldprev, c, stepsize);
+  AOS_Columns(Ldprev, c, stepsize);
 #endif
 
   Ld = 0.5*(Lty_+Ltx_.t());
 }
 
 /* ************************************************************************* */
-/**
- * @brief This method performs performs 1D-AOS for the image rows
- * @param Ldprev Image at a previous evolution step
- * @param c Conductivity image
- * @param stepsize Stepsize for the nonlinear diffusion evolution
-*/
-void KAZE::AOS_Rows(const cv::Mat &Ldprev, const cv::Mat &c, const float& stepsize) {
+void KAZE::AOS_Rows(const cv::Mat& Ldprev, const cv::Mat& c, const float stepsize) {
 
   // Operate on rows
   for (int i = 0; i < qr_.rows; i++) {
@@ -2441,13 +2196,7 @@ void KAZE::AOS_Rows(const cv::Mat &Ldprev, const cv::Mat &c, const float& stepsi
 }
 
 /* ************************************************************************* */
-/**
- * @brief This method performs performs 1D-AOS for the image columns
- * @param Ldprev Image at a previous evolution step
- * @param c Conductivity image
- * @param stepsize Stepsize for the nonlinear diffusion evolution
-*/
-void KAZE::AOS_Columns(const cv::Mat &Ldprev, const cv::Mat &c, const float& stepsize) {
+void KAZE::AOS_Columns(const cv::Mat& Ldprev, const cv::Mat& c, const float stepsize) {
 
   // Operate on columns
   for (int j = 0; j < qc_.cols; j++) {
@@ -2477,24 +2226,20 @@ void KAZE::AOS_Columns(const cv::Mat &Ldprev, const cv::Mat &c, const float& ste
   bx_ = -stepsize*qc_.t();
 
   // But take care since we need to transpose the solution!!
-  Mat Ldprevt = Ldprev.t();
+  cv::Mat Ldprevt = Ldprev.t();
 
   // Do Thomas algorithm to solve the linear system of equations
   Thomas(ax_,bx_,Ldprevt,Ltx_);
 }
 
 /* ************************************************************************* */
-/**
- * @brief This method does the Thomas algorithm for solving a tridiagonal linear system
- * @note The matrix A must be strictly diagonally dominant for a stable solution
-*/
-void KAZE::Thomas(const cv::Mat &a, const cv::Mat &b, const cv::Mat &Ld, cv::Mat &x) {
+void KAZE::Thomas(const cv::Mat& a, const cv::Mat &b, const cv::Mat &Ld, cv::Mat &x) {
 
   // Auxiliary variables
   int n = a.rows;
-  Mat m = cv::Mat::zeros(a.rows,a.cols,CV_32F);
-  Mat l = cv::Mat::zeros(b.rows,b.cols,CV_32F);
-  Mat y = cv::Mat::zeros(Ld.rows,Ld.cols,CV_32F);
+  cv::Mat m = cv::Mat::zeros(a.rows, a.cols,CV_32F);
+  cv::Mat l = cv::Mat::zeros(b.rows, b.cols,CV_32F);
+  cv::Mat y = cv::Mat::zeros(Ld.rows, Ld.cols,CV_32F);
 
   /** A*x = d;																		   	   */
   /**	/ a1 b1  0  0 0  ...    0 \  / x1 \ = / d1 \										   */
@@ -2509,7 +2254,6 @@ void KAZE::Thomas(const cv::Mat &a, const cv::Mat &b, const cv::Mat &Ld, cv::Mat
    /     |    l2 1          |			|		m3 r3	   |
    /	  |     : : :        |			|       :  :  :	   |
    /	  \           ln-1 1 /			\				mn /	*/
-
   for (int j = 0; j < m.cols; j++) {
     *(m.ptr<float>(0)+j) = *(a.ptr<float>(0)+j);
   }
@@ -2546,81 +2290,40 @@ void KAZE::Thomas(const cv::Mat &a, const cv::Mat &b, const cv::Mat &Ld, cv::Mat
 }
 
 /* ************************************************************************* */
-/**
- * @brief This method saves the nonlinear scale space into jpg images
-*/
 void KAZE::Save_Scale_Space() {
 
-  Mat img_aux;
+  cv::Mat img_aux;
   char outputFile[500];
 
   for (size_t i = 0; i < evolution_.size(); i++) {
     convert_scale(evolution_[i].Lt);
-    evolution_[i].Lt.convertTo(img_aux,CV_8U,255.0,0);
-    sprintf(outputFile,"../../output/images/nl_evolution_%02ld.jpg",i);
-    imwrite(outputFile,img_aux);
+    evolution_[i].Lt.convertTo(img_aux, CV_8U, 255.0, 0);
+    sprintf(outputFile,"../output/images/nl_evolution_%02ld.jpg",i);
+    cv::imwrite(outputFile, img_aux);
   }
 }
 
 /* ************************************************************************* */
-/**
- * @brief This method saves the feature detector responses of the nonlinear scale space
- * into jpg images
-*/
-void KAZE::Save_Detector_Responses(void) {
+void KAZE::Save_Detector_Responses() {
 
-  Mat img_aux;
+  cv::Mat img_aux;
   char outputFile[500];
 
   for (size_t i = 0; i < evolution_.size(); i++) {
     convert_scale(evolution_[i].Ldet);
-    evolution_[i].Ldet.convertTo(img_aux,CV_8U,255.0,0);
-    sprintf(outputFile,"../../output/images/nl_detector_%02ld.jpg",i);
-    imwrite(outputFile,img_aux);
+    evolution_[i].Ldet.convertTo(img_aux, CV_8U, 255.0, 0);
+    sprintf(outputFile,"../output/images/nl_detector_%02ld.jpg",i);
+    cv::imwrite(outputFile, img_aux);
   }
 }
 
 /* ************************************************************************* */
-/**
- * @brief This function computes the angle from the vector given by (X Y). From 0 to 2*Pi
-*/
-inline float getAngle(const float& x, const float& y) {
-
-  if (x >= 0 && y >= 0)
-    return atan(y/x);
-
-  if (x < 0 && y >= 0)
-    return CV_PI - atan(-y/x);
-
-  if(x < 0 && y < 0)
-    return CV_PI + atan(y/x);
-
-  if(x >= 0 && y < 0)
-    return 2.0*CV_PI - atan(-y/x);
-
-  return 0;
-}
-
-/* ************************************************************************* */
-/**
- * @brief This function computes the value of a 2D Gaussian function
- * @param x X Position
- * @param y Y Position
- * @param sig Standard Deviation
-*/
-inline float gaussian(const float& x, const float& y, const float& sig) {
+inline float libKAZE::gaussian(float x, float y, float sig) {
   return exp(-(x*x+y*y)/(2.0f*sig*sig));
 }
 
 /* ************************************************************************* */
-/**
- * @brief This function checks descriptor limits
- * @param x X Position
- * @param y Y Position
- * @param width Image width
- * @param height Image height
-*/
-inline void checkDescriptorLimits(int& x, int& y, const int width, const int height) {
+inline void libKAZE::checkDescriptorLimits(int& x, int& y, const int width, const int height) {
 
   if (x < 0)
     x = 0;
@@ -2636,11 +2339,6 @@ inline void checkDescriptorLimits(int& x, int& y, const int width, const int hei
 }
 
 /* ************************************************************************* */
-/**
- * @brief This funtion rounds float to nearest integer
- * @param flt Input float
- * @return dst Nearest integer
- */
-inline int fRound(const float& flt) {
+inline int libKAZE::fRound(const float flt) {
   return (int)(flt+0.5f);
 }

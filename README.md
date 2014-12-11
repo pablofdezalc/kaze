@@ -1,13 +1,19 @@
 
 ## README - KAZE Features
 
-Version: 1.7.0
-Date: 04-05-2014
+Version: 1.8.0
+Date: 11-12-2014
 
 You can get the latest version of the code from github:
 `https://github.com/pablofdezalc/kaze`
 
 ## CHANGELOG
+Version: 1.8.0
+Changes:
+- The code has been changed for compatibility with OpenCV 3.0. Note that in OpenCV 3.0, SURF and SIFT have been moved to opencv2/xfeatures2d.hpp.
+ If you want to compile kaze_compare, you will need to download and compile opencv_contrib: `https://github.com/Itseez/opencv_contrib`
+- Some speed-ups have been introduced
+
 Version: 1.7.0
 Changes:
 - KAZEConfig.h added, now all the configuration options are defined in this file
@@ -203,14 +209,14 @@ the following results:
 ```
 
 ```
-Number of Keypoints Image 1: 1902
-Number of Keypoints Image 2: 1951
-KAZE Features Extraction Time (ms): 1593.48
-Matching Descriptors Time (ms): 37.6806
-Number of Matches: 869
-Number of Inliers: 842
-Number of Outliers: 27
-Inliers Ratio: 96.893
+Number of Keypoints Image 1: 1825
+Number of Keypoints Image 2: 1634
+KAZE Features Extraction Time (ms): 992.943
+Matching Descriptors Time (ms): 14.2714
+Number of Matches: 981
+Number of Inliers: 854
+Number of Outliers: 127
+Inliers Ratio: 87.054
 ```
 
 ## Image Matching Comparison between KAZE, SIFT and SURF (OpenCV)
@@ -230,36 +236,35 @@ For example, running kaze_compare with the first and third images from the boat 
                ../../datasets/boat/img3.pgm
                ../../datasets/boat/H1to3p
 ```
-```
 SIFT Results
 **************************************
 Number of Keypoints Image 1: 2000
 Number of Keypoints Image 2: 2000
-Number of Matches: 584
-Number of Inliers: 575
-Number of Outliers: 9
-Inliers Ratio: 98.4589
-SIFT Features Extraction Time (ms): 964.85
+Number of Matches: 746
+Number of Inliers: 690
+Number of Outliers: 56
+Inliers Ratio: 92.4933
+SIFT Features Extraction Time (ms): 1087.91
 
 SURF Results
 **************************************
 Number of Keypoints Image 1: 4021
 Number of Keypoints Image 2: 3162
-Number of Matches: 301
-Number of Inliers: 264
-Number of Outliers: 37
-Inliers Ratio: 87.7076
-SURF Features Extraction Time (ms): 373.713
+Number of Matches: 725
+Number of Inliers: 499
+Number of Outliers: 226
+Inliers Ratio: 68.8276
+SURF Features Extraction Time (ms): 133.709
 
 KAZE Results
 **************************************
-Number of Keypoints Image 1: 5170
-Number of Keypoints Image 2: 4375
-Number of Matches: 1309
-Number of Inliers: 1246
-Number of Outliers: 63
-Inliers Ratio: 95.1872
-KAZE Features Extraction Time (ms): 2254.6
+Number of Keypoints Image 1: 4795
+Number of Keypoints Image 2: 4061
+Number of Matches: 1908
+Number of Inliers: 1710
+Number of Outliers: 198
+Inliers Ratio: 89.6226
+KAZE Features Extraction Time (ms): 869.032
 ```
 
 One of the interesting reasons why you should use KAZE features is because is open source and you can use that freely even in commercial applications, which is not the case
