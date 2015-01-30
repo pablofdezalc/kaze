@@ -87,16 +87,15 @@ int fed_tau_internal(const int n, const float scale, const float tau_max,
       tau[k] = d / (h * h);
   }
 
-  // Permute list of time steps according to chosen reordering function
-  int kappa = 0, prime = 0;
-
   if (reordering == true) {
+    // Permute list of time steps according to chosen reordering function
+
     // Choose kappa cycle with k = n/2
     // This is a heuristic. We can use Leja ordering instead!!
-    kappa = n / 2;
+    int kappa = n / 2;
 
     // Get modulus for permutation
-    prime = n + 1;
+    int prime = n + 1;
 
     while (!fed_is_prime_internal(prime)) {
       prime++;
