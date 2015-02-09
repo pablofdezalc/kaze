@@ -340,31 +340,31 @@ void draw_inliers(const cv::Mat& img1, const cv::Mat& img2, cv::Mat& img_com,
 }
 
 /* ************************************************************************* */
-bool read_homography(const std::string& homography_path, cv::Mat& H1toN) {
+bool read_homography(const string& hFile, cv::Mat& H1toN) {
 
   float h11 = 0.0, h12 = 0.0, h13 = 0.0;
   float h21 = 0.0, h22 = 0.0, h23 = 0.0;
   float h31 = 0.0, h32 = 0.0, h33 = 0.0;
-  int  tmp_buf_size = 256;
+  const int tmp_buf_size = 256;
   char tmp_buf[tmp_buf_size];
 
   // Allocate memory for the OpenCV matrices
   H1toN = cv::Mat::zeros(3,3,CV_32FC1);
 
+  string filename(hFile);
   ifstream pf;
-  pf.exceptions(ifstream::eofbit | ifstream::failbit | ifstream::badbit );
-  pf.open(homography_path.c_str(),ifstream::in);
+  pf.open(filename.c_str(), std::ifstream::in);
 
   if (!pf.is_open())
     return false;
 
-  pf.getline(tmp_buf, tmp_buf_size);
+  pf.getline(tmp_buf,tmp_buf_size);
   sscanf(tmp_buf,"%f %f %f",&h11,&h12,&h13);
 
-  pf.getline(tmp_buf, tmp_buf_size);
+  pf.getline(tmp_buf,tmp_buf_size);
   sscanf(tmp_buf,"%f %f %f",&h21,&h22,&h23);
 
-  pf.getline(tmp_buf, tmp_buf_size);
+  pf.getline(tmp_buf,tmp_buf_size);
   sscanf(tmp_buf,"%f %f %f",&h31,&h32,&h33);
 
   pf.close();
