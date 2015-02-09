@@ -124,7 +124,9 @@ int main(int argc, char *argv[]) {
 
   // Read the homography file
   cv::Mat H;
-  read_homography(homography_path,H);
+  bool use_ransac = false;
+  if (read_homography(homography_path, H) == false)
+    use_ransac = true;
 
   /* ************************************************************************* */
   // Detect SIFT Features
@@ -140,7 +142,10 @@ int main(int argc, char *argv[]) {
   matches2points_nndr(kpts_sift1,kpts_sift2,dmatches_sift,matches_sift,DRATIO);
 
   // Compute Inliers!!
-  compute_inliers_homography(matches_sift,inliers_sift,H,MAX_H_ERROR);
+  if (use_ransac == false)
+    compute_inliers_homography(matches_sift,inliers_sift,H,MAX_H_ERROR);
+  else
+    compute_inliers_ransac(matches_sift,inliers_sift,MAX_H_ERROR,false);
 
   t2 = cv::getTickCount();
   tsift = 1000.0*(t2-t1) / cv::getTickFrequency();
@@ -181,7 +186,10 @@ int main(int argc, char *argv[]) {
   matches2points_nndr(kpts_surf1, kpts_surf2, dmatches_surf, matches_surf, DRATIO);
 
   // Compute Inliers!!
-  compute_inliers_homography(matches_surf, inliers_surf, H, MAX_H_ERROR);
+  if (use_ransac == false)
+    compute_inliers_homography(matches_surf,inliers_surf,H,MAX_H_ERROR);
+  else
+    compute_inliers_ransac(matches_surf,inliers_surf,MAX_H_ERROR,false);
 
   t2 = cv::getTickCount();
   tsurf = 1000.0*(t2-t1) / cv::getTickFrequency();
@@ -238,8 +246,11 @@ int main(int argc, char *argv[]) {
   matcher_l2->knnMatch(desc_kaze1,desc_kaze2,dmatches_kaze,2);
   matches2points_nndr(kpts_kaze1,kpts_kaze2,dmatches_kaze,matches_kaze,DRATIO);
 
-  // Compute Inliers!!
-  compute_inliers_homography(matches_kaze,inliers_kaze,H,MAX_H_ERROR);
+  // Compute Inliers!!  // Compute Inliers!!
+  if (use_ransac == false)
+    compute_inliers_homography(matches_kaze,inliers_kaze,H,MAX_H_ERROR);
+  else
+    compute_inliers_ransac(matches_kaze,inliers_kaze,MAX_H_ERROR,false);
 
   t2 = cv::getTickCount();
   tkaze = 1000.0*(t2-t1) / cv::getTickFrequency();
@@ -324,9 +335,11 @@ int parse_input_options(KAZEOptions& options, std::string& img_path1, std::strin
 
     img_path1 = argv[1];
     img_path2 = argv[2];
-    homography_path = argv[3];
 
-    for (int i = 4; i < argc; i++) {
+    if (argc >= 4)
+      homography_path = argv[3];
+
+    for (int i = 3; i < argc; i++) {
       if (!strcmp(argv[i],"--soffset")) {
         i = i+1;
         if (i >= argc) {
