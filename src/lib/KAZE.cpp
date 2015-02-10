@@ -70,11 +70,9 @@ void KAZE::Allocate_Memory_Evolution() {
   // Allocate memory for the FED number of cycles and time steps
   if (options_.use_fed) {
     for (size_t i = 1; i < evolution_.size(); i++) {
-      int naux = 0;
+      float ttime = evolution_[i].etime-evolution_[i-1].etime;
       vector<float> tau;
-      float ttime = 0.0;
-      ttime = evolution_[i].etime-evolution_[i-1].etime;
-      naux = fed_tau_by_process_time(ttime, 1, 0.25, reordering_, tau);
+      int naux = fed_tau_by_process_time(ttime, 1, 0.25, reordering_, tau);
       nsteps_.push_back(naux);
       tsteps_.push_back(tau);
       ncycles_++;
