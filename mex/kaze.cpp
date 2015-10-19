@@ -1,17 +1,17 @@
 //
 //=============================================================================
-// MEX compilation example in Linux (with OpenCV 2.4.8):
-// mex kaze.cpp -I'../src/lib/' -L'../build/lib/' -I'/usr/local/include/opencv2/'
-// -L'/usr/local/lib/' -lKAZE -lopencv_calib3d -lopencv_contrib -lopencv_core
-// -lopencv_highgui -lopencv_imgproc -lgomp
+// MEX compilation example in Linux (with OpenCV 3.0):
+// mex kaze.cpp -I'../src/lib/' -L'/home/pablo/Research/gitcenter/kaze/build/lib'...
+// -I'/usr/local/include/opencv2/' -L'/usr/local/lib/' -lKAZE -lopencv_core
+// -lopencv_calib3d -lopencv_imgcodecs -lopencv_imgproc -lgomp
 //=============================================================================
 //
 // KAZE features MEX wrapper
 // Author: Pablo F. Alcantarilla
-// Date: 20/04/2014
+// Date: 19/10/2015
 // Email: pablofdezalc@gmail.com
 //
-// KAZE Features Copyright 2012, Pablo F. Alcantarilla
+// KAZE Features Copyright 2015, Pablo F. Alcantarilla
 // All Rights Reserved
 // See LICENSE for the license information
 //=============================================================================
@@ -157,7 +157,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
   KAZEOptions options;
 
   // Variable for computation times.
-  double t1 = 0.0, t2 = 0.0, tcvt = 0.0, tdet = 0.0, tdesc = 0.0;
+  float t1 = 0.0, t2 = 0.0, tcvt = 0.0, tdet = 0.0, tdesc = 0.0;
 
   if (nrhs == 0) {
     show_input_options_help();
@@ -195,14 +195,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
   // Extract features.
   vector<cv::KeyPoint> kpts;
   t1 = cv::getTickCount();
-  KAZE evolution(options);
+  libKAZE::KAZE evolution(options);
   evolution.Create_Nonlinear_Scale_Space(img_32);
   evolution.Feature_Detection(kpts);
   t2 = cv::getTickCount();
   tdet = 1000.0*(t2-t1) / cv::getTickFrequency();
 
   if (nlhs > 0) {
-
     plhs[0] = mxCreateDoubleMatrix(kpts.size(), 2, mxREAL);
     double* pts_ptr = mxGetPr(plhs[0]);
     for (int i = 0 ; i < kpts.size() ; i++) {
