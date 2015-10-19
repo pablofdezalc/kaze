@@ -1,7 +1,7 @@
 //
 //=============================================================================
 // MEX compilation example in Linux (with OpenCV 3.0):
-// mex kaze.cpp -I'../src/lib/' -L'/home/pablo/Research/gitcenter/kaze/build/lib'...
+// mex kaze.cpp -I'../src/lib/' -L'../build/lib'
 // -I'/usr/local/include/opencv2/' -L'/usr/local/lib/' -lKAZE -lopencv_core
 // -lopencv_calib3d -lopencv_imgcodecs -lopencv_imgproc -lgomp
 //=============================================================================
