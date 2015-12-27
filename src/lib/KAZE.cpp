@@ -216,11 +216,11 @@ void KAZE::Compute_Multiscale_Derivatives() {
     compute_scharr_derivatives(evolution_[i].Ly, evolution_[i].Lyy, 0, 1, evolution_[i].sigma_size);
     compute_scharr_derivatives(evolution_[i].Lx, evolution_[i].Lxy, 0, 1, evolution_[i].sigma_size);
 
-    evolution_[i].Lx = evolution_[i].Lx*((evolution_[i].sigma_size));
+    /*evolution_[i].Lx = evolution_[i].Lx*((evolution_[i].sigma_size));
     evolution_[i].Ly = evolution_[i].Ly*((evolution_[i].sigma_size));
     evolution_[i].Lxx = evolution_[i].Lxx*((evolution_[i].sigma_size)*(evolution_[i].sigma_size));
     evolution_[i].Lxy = evolution_[i].Lxy*((evolution_[i].sigma_size)*(evolution_[i].sigma_size));
-    evolution_[i].Lyy = evolution_[i].Lyy*((evolution_[i].sigma_size)*(evolution_[i].sigma_size));
+    evolution_[i].Lyy = evolution_[i].Lyy*((evolution_[i].sigma_size)*(evolution_[i].sigma_size));*/
   }
 
   t2 = cv::getTickCount();
@@ -239,15 +239,15 @@ void KAZE::Compute_Detector_Response() {
     if (options_.verbosity == true)
       cout << "Computing detector response. Determinant of Hessian. Evolution time: " << evolution_[i].etime << endl;
 
-    for (int ix = 0; ix < options_.img_height; ix++) {
+    int sigma_size_quat = evolution_[i].sigma_size*evolution_[i].sigma_size*evolution_[i].sigma_size*evolution_[i].sigma_size;
 
+    for (int ix = 0; ix < options_.img_height; ix++) {
       const float* lxx = evolution_[i].Lxx.ptr<float>(ix);
       const float* lxy = evolution_[i].Lxy.ptr<float>(ix);
       const float* lyy = evolution_[i].Lyy.ptr<float>(ix);
       float* ldet = evolution_[i].Ldet.ptr<float>(ix);
-
       for (int jx = 0; jx < options_.img_width; jx++)
-       ldet[jx] = (lxx[jx]*lyy[jx]-lxy[jx]*lxy[jx]);
+       ldet[jx] = (lxx[jx]*lyy[jx]-lxy[jx]*lxy[jx])*sigma_size_quat;
     }
   }
 }
