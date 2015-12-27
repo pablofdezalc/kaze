@@ -75,23 +75,26 @@ int main(int argc, char* argv[]) {
     evolution.Save_Scale_Space();
   }
 
-  libKAZE::KAZETiming timing = evolution.Get_Computation_Times();
-  cout << "Time Scale Space: " << timing.scale << endl;
-  cout << "Time Detector: " << timing.detector << endl;
-  cout << "Time Descriptor: " << timing.descriptor << endl;
-  cout << "Number of Keypoints: " << kpts.size() << endl;
+  // Show results if desired
+  if (options.show_results == true) {
+    libKAZE::KAZETiming timing = evolution.Get_Computation_Times();
+    cout << "Time Scale Space: " << timing.scale << endl;
+    cout << "Time Detector: " << timing.detector << endl;
+    cout << "Time Descriptor: " << timing.descriptor << endl;
+    cout << "Number of Keypoints: " << kpts.size() << endl;
 
-  // Create the OpenCV window
-  cv::namedWindow("KAZE Features", cv::WINDOW_NORMAL);
+    // Create the OpenCV window
+    cv::namedWindow("KAZE Features", cv::WINDOW_NORMAL);
 
-  // Copy the input image to the color one
-  cv::cvtColor(img, img_rgb, cv::COLOR_GRAY2BGR);
+    // Copy the input image to the color one
+    cv::cvtColor(img, img_rgb, cv::COLOR_GRAY2BGR);
 
-  // Draw the list of detected points
-  draw_keypoints(img_rgb,kpts);
+    // Draw the list of detected points
+    draw_keypoints(img_rgb,kpts);
 
-  cv::imshow("KAZE Features", img_rgb);
-  cv::waitKey(0);
+    cv::imshow("KAZE Features", img_rgb);
+    cv::waitKey(0);
+  }
 
   // Save the list of keypoints
   if (options.save_keypoints == true)
@@ -209,6 +212,16 @@ int parse_input_options(KAZEOptions& options, std::string& img_path,
         }
         else {
           options.use_fed = (bool)atoi(argv[i]);
+        }
+      }
+      else if (!strcmp(argv[i],"--show_results")) {
+        i = i+1;
+        if (i >= argc) {
+          cerr << "Error introducing input options!!" << endl;
+          return -1;
+        }
+        else {
+          options.show_results = (bool)atoi(argv[i]);
         }
       }
       else if (!strcmp(argv[i],"--verbose")) {

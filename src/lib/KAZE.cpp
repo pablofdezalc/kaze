@@ -111,7 +111,7 @@ int KAZE::Create_Nonlinear_Scale_Space(const cv::Mat& img) {
   // Copy the original image to the first level of the evolution
   img.copyTo(evolution_[0].Lt);
   gaussian_2D_convolution(evolution_[0].Lt, evolution_[0].Lt, 0, 0, options_.soffset);
-  gaussian_2D_convolution(evolution_[0].Lt, evolution_[0].Lsmooth, 0, 0, options_.sderivatives);
+  evolution_[0].Lt.copyTo(evolution_[0].Lsmooth);
 
   // Allocate memory for the flow and step images
   cv::Mat Lflow = cv::Mat::zeros(evolution_[0].Lt.rows, evolution_[0].Lt.cols, CV_32F);
@@ -333,8 +333,6 @@ void KAZE::Determinant_Hessian_Parallel(std::vector<cv::KeyPoint>& kpts) {
             up_y < 0 || down_y >= evolution_[level].Ldet.rows) {
           is_out = true;
         }
-
-        is_out = false;
 
         if (is_out == false) {
           if (is_repeated == false) {

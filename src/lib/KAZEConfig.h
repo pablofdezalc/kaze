@@ -51,7 +51,7 @@ struct KAZEOptions {
     soffset = 1.60;
     omax = 4;
     nsublevels = 4;
-    dthreshold = 0.001;
+    dthreshold = 0.0007;
     min_dthreshold = 0.000001f;
     use_fed = true;
     descriptor = MSURF;
@@ -60,6 +60,7 @@ struct KAZEOptions {
     kcontrast = 0.001f;
     kcontrast_percentile = 0.7f;
     kcontrast_nbins = 300;
+    show_results = false;
     save_scale_space = false;
     save_keypoints = false;
     verbosity = false;
@@ -83,6 +84,7 @@ struct KAZEOptions {
 
   DESCRIPTOR_TYPE descriptor;
 
+  bool show_results;              ///< Set to true for displaying results
   bool save_scale_space;
   bool save_keypoints;
   bool verbosity;
