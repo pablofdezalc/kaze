@@ -51,7 +51,7 @@ struct KAZEOptions {
     soffset = 1.60;
     omax = 4;
     nsublevels = 4;
-    dthreshold = 0.0007;
+    dthreshold = 0.0003;
     min_dthreshold = 0.000001f;
     use_fed = true;
     descriptor = MSURF;
