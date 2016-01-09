@@ -60,7 +60,7 @@ struct KAZEOptions {
     kcontrast = 0.001f;
     kcontrast_percentile = 0.7f;
     kcontrast_nbins = 300;
-    show_results = false;
+    show_results = true;
     save_scale_space = false;
     save_keypoints = false;
     verbosity = false;

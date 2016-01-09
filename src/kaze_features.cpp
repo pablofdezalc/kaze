@@ -78,6 +78,9 @@ int main(int argc, char* argv[]) {
   // Show results if desired
   if (options.show_results == true) {
     libKAZE::KAZETiming timing = evolution.Get_Computation_Times();
+
+    cout << "KAZE Features" << endl;
+    cout << "********************************" << endl;
     cout << "Time Scale Space: " << timing.scale << endl;
     cout << "Time Detector: " << timing.detector << endl;
     cout << "Time Descriptor: " << timing.descriptor << endl;
